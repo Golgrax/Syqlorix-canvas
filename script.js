@@ -12,28 +12,84 @@ document.addEventListener('DOMContentLoaded', () => {
     `;
     previewFrame.srcdoc = initialPreviewContent;
 
-    // --- Main Conversion Logic ---
-    const convertHtmlToSyqlorix = (htmlString) => {
+    // ========================================================================
+    // NEW: Syqlorix HTML Renderer Simulation in JavaScript
+    // ========================================================================
+    const renderPreviewFromHtml = (htmlString) => {
         try {
+            // We use the same parser and validation as the converter
             if (!htmlString.trim().toLowerCase().startsWith('<!doctype html>')) {
-                throw new Error("Input must be a full HTML document, starting with <!DOCTYPE html>.");
+                throw new Error("Input must be a full HTML document.");
             }
             const parser = new DOMParser();
             const doc = parser.parseFromString(htmlString, 'text/html');
             const parseError = doc.querySelector('parsererror');
-            if (parseError) {
-                throw new Error("HTML parsing error. Check for unclosed tags or syntax issues.");
+            if (parseError) throw new Error("HTML has errors. Preview is paused.");
+            
+            // Re-render the document from the DOM tree, simulating Syqlorix's output
+            return `<!DOCTYPE html>\n${renderNodeAsHtml(doc.documentElement, 0)}`;
+
+        } catch (e) {
+            showStatus(e.message, 'error');
+            return `<body style="font-family: sans-serif; color: #c00; display: grid; place-content: center; height: 100%; margin: 0;"><p>${e.message}</p></body>`;
+        }
+    };
+
+    const renderNodeAsHtml = (node, indentLevel) => {
+        const indent = "  ".repeat(indentLevel);
+        const selfClosingTags = new Set(["area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"]);
+
+        if (node.nodeType === Node.TEXT_NODE) {
+            const text = node.textContent.trim();
+            return text ? `${indent}${text}\n` : '';
+        }
+
+        if (node.nodeType === Node.COMMENT_NODE) {
+            const text = node.textContent.trim();
+            return `${indent}<!-- ${text} -->\n`;
+        }
+
+        if (node.nodeType === Node.ELEMENT_NODE) {
+            const tagName = node.tagName.toLowerCase();
+            const attributes = Array.from(node.attributes).map(attr => ` ${attr.name}="${attr.value}"`).join('');
+            
+            if (selfClosingTags.has(tagName)) {
+                return `${indent}<${tagName}${attributes}>\n`;
             }
+
+            let html = `${indent}<${tagName}${attributes}>\n`;
+            Array.from(node.childNodes).forEach(child => {
+                html += renderNodeAsHtml(child, indentLevel + 1);
+            });
+            html += `${indent}</${tagName}>\n`;
+            return html;
+        }
+        return '';
+    };
+
+
+    // ========================================================================
+    // HTML to Syqlorix Python Code Converter (Updated)
+    // ========================================================================
+    const convertHtmlToSyqlorix = (htmlString) => {
+        try {
+            if (!htmlString.trim().toLowerCase().startsWith('<!doctype html>')) {
+                throw new Error("Input must be a full HTML document.");
+            }
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlString, 'text/html');
+            const parseError = doc.querySelector('parsererror');
+            if (parseError) throw new Error("HTML parsing error. Check for unclosed tags.");
+            
             const rootElement = doc.documentElement;
             if (!rootElement) throw new Error("No <html> tag found.");
             
-            const syqlorixCode = processNode(rootElement, 0);
+            const syqlorixCode = processNodeForPython(rootElement, 0);
             return {
                 success: true,
                 code: `from syqlorix import *\n\n# Main application object\ndoc = ${syqlorixCode}`
             };
         } catch (e) {
-            showStatus(e.message, 'error');
             return {
                 success: false,
                 code: `from syqlorix import *\n\n# Conversion failed: ${e.message}`
@@ -41,8 +97,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // --- Recursive Node Processor ---
-    const processNode = (node, indentLevel) => {
+    const processNodeForPython = (node, indentLevel) => {
         const indent = '    '.repeat(indentLevel);
         if (node.nodeType === Node.TEXT_NODE) {
             const text = node.textContent.trim();
@@ -55,14 +110,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (node.nodeType === Node.ELEMENT_NODE) {
             let tagName = node.tagName.toLowerCase();
             
-            // For the preview, we need the original tags, but for the code, we need the Python-safe versions
+            // Skip tags that Syqlorix would handle as strings inside other tags
             if (['script', 'style'].includes(tagName)) return null;
 
             let pythonTagName = tagName;
             if (pythonTagName === 'html') pythonTagName = 'Syqlorix';
             if (pythonTagName === 'input') pythonTagName = 'input_';
 
-            const children = Array.from(node.childNodes).map(child => processNode(child, indentLevel + 1)).filter(Boolean);
+            const children = Array.from(node.childNodes).map(child => processNodeForPython(child, indentLevel + 1)).filter(Boolean);
             const attributes = Array.from(node.attributes).map(attr => {
                 const attrName = attr.name === 'class' ? 'class_' : attr.name.replace(/-/g, '_');
                 if (attr.value === '') return `${attrName}=True`;
@@ -85,12 +140,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const showStatus = (message, type = 'error') => {
         statusMessage.textContent = message;
         statusMessage.className = `status ${type}`;
-        statusMessage.style.display = 'block';
     };
 
     const hideStatus = () => {
-        statusMessage.style.display = 'none';
         statusMessage.textContent = '';
+        statusMessage.className = 'status';
     };
 
     htmlInput.addEventListener('input', () => {
@@ -103,14 +157,12 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        // Run both processes: conversion and simulation
         const result = convertHtmlToSyqlorix(html);
+        const previewHtml = renderPreviewFromHtml(html);
+
         syqlorixOutput.value = result.code;
-        
-        if (result.success) {
-            previewFrame.srcdoc = html;
-        } else {
-            previewFrame.srcdoc = `<body style="font-family: sans-serif; color: #c00; display: grid; place-content: center; height: 100%; margin: 0;"><p>HTML has errors. Preview is paused.</p></body>`;
-        }
+        previewFrame.srcdoc = previewHtml;
     });
 
     copyButton.addEventListener('click', () => {
