@@ -10,8 +10,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const BOOLEAN_ATTRIBUTES = new Set(['disabled', 'checked', 'selected', 'required', 'readonly', 'multiple', 'autoplay', 'controls', 'loop', 'muted', 'playsinline', 'defer', 'async', 'novalidate', 'formnovalidate']);
 
     /**
-     * Main entry point for conversion.
-     * @param {string} htmlString The full HTML document as text.
+     * Main entry point for conversion. This function now orchestrates the creation of
+     * a fully idiomatic Syqlorix Python script.
+     * @param {string} htmlString - The full HTML document as text.
      * @returns {string} The complete and formatted Syqlorix Python script.
      */
     function convertHtmlToSyqlorix(htmlString) {
@@ -19,72 +20,57 @@ document.addEventListener('DOMContentLoaded', () => {
         const parser = new DOMParser();
         const doc = parser.parseFromString(htmlString, 'text/html');
 
-        // Check for parsing errors which indicate invalid HTML
         if (doc.getElementsByTagName('parsererror').length > 0) {
             throw new Error('Invalid HTML. Check for unclosed tags or syntax errors.');
         }
 
-        const collectedCodeBlocks = []; // To hold CSS and JS for variable definitions
-        const INDENT = '    '; // Standard Python indentation
+        const collectedCodeBlocks = []; // To hold CSS and JS for variable definitions at the top
+        const INDENT = '    ';
 
         // --- Processing ---
-        const headNode = doc.head;
-        const bodyNode = doc.body;
-
-        const headContent = processChildNodes(headNode.childNodes, 2, collectedCodeBlocks);
-        const bodyContent = processChildNodes(bodyNode.childNodes, 2, collectedCodeBlocks);
-
-        // --- Assembly ---
+        // We now process head and body to get their component representations
+        const headComponent = processNode(doc.head, 1, collectedCodeBlocks);
+        const bodyComponent = processNode(doc.body, 1, collectedCodeBlocks);
+        
+        // --- Final Script Assembly ---
         let variableDefinitions = collectedCodeBlocks
-            .map(block => `${block.name} = """${block.content}"""`)
+            .map(block => `${block.name} = """\n${block.content}\n"""`)
             .join('\n\n');
-        
-        const headBlock = headContent.length > 0
-            ? `${INDENT}head(\n${headContent.join(',\n')}\n${INDENT})`
-            : '';
-            
-        const bodyBlock = bodyContent.length > 0
-            ? `${INDENT}body(\n${bodyContent.join(',\n')}\n${INDENT})`
-            : '';
 
-        const docArgs = [headBlock, bodyBlock].filter(Boolean).join(`,\n`);
-        
-        let finalScript = 'from syqlorix import *\n\n';
-        finalScript += '# NOTE: The <!DOCTYPE> declaration is automatically handled by Syqlorix.\n\n';
+        let finalScript = 'from syqlorix import *\n';
+        finalScript += '# NOTE: Components, functions, and routes cannot be inferred from static HTML.\n\n';
 
-        if(variableDefinitions){
+        if (variableDefinitions) {
             finalScript += variableDefinitions + '\n\n';
         }
         
-        finalScript += `doc = Syqlorix(\n${docArgs}\n)`;
+        // This part now generates the correct `doc / ...` structure
+        finalScript += '# --- Build the document using the division operator for nesting ---\n';
+        finalScript += 'doc = Syqlorix()\n\n';
+        if (headComponent) {
+            finalScript += `doc / ${headComponent}\n\n`;
+        }
+        if (bodyComponent) {
+            finalScript += `doc / ${bodyComponent}\n`;
+        }
         
         return finalScript;
     }
 
     /**
-     * Processes an array of DOM nodes recursively.
-     * @param {NodeListOf<ChildNode>} nodes The list of nodes to process.
-     * @param {number} level The current indentation level.
-     * @param {Array<Object>} collectedCodeBlocks The accumulator for style/script content.
-     * @returns {string[]} An array of Syqlorix string representations for the nodes.
-     */
-    function processChildNodes(nodes, level, collectedCodeBlocks) {
-        return Array.from(nodes)
-            .map(node => processNode(node, level, collectedCodeBlocks))
-            .filter(Boolean); // Filter out null results (like whitespace text nodes)
-    }
-
-    /**
-     * Processes a single DOM node.
+     * Recursively processes a single DOM node into its Syqlorix representation.
+     * @param {Node} node - The DOM node to process.
+     * @param {number} level - The current indentation level for pretty-printing.
+     * @param {Array<Object>} collectedCodeBlocks - The accumulator for style/script content.
+     * @returns {string|null} The Syqlorix string for the node, or null.
      */
     function processNode(node, level, collectedCodeBlocks) {
         const indent = '    '.repeat(level);
-
-        // Case 1: ELEMENT_NODE (e.g., <div>, <p>)
+        
         if (node.nodeType === Node.ELEMENT_NODE) {
             let tagName = node.tagName.toLowerCase();
 
-            // Handle internal <style> and <script> tags idiomatically
+            // Handle internal <style> and <script> tags by extracting their content to variables
             const isInternalScript = tagName === 'script' && !node.hasAttribute('src');
             const isInternalStyle = tagName === 'style';
 
@@ -94,27 +80,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 const variableName = `internal_${contentType}_${collectedCodeBlocks.filter(b => b.type === contentType).length + 1}`;
                 
                 collectedCodeBlocks.push({ name: variableName, content: content, type: contentType });
-                return `${indent}${tagName}(${variableName})`;
+                return `${indent.slice(4)}${tagName}(${variableName})`;
             }
 
             tagName = KEYWORD_MAP[tagName] || tagName;
-
             const children = processChildNodes(node.childNodes, level + 1, collectedCodeBlocks);
             const attrs = processAttributes(node.attributes);
             const allArgs = [...children, ...attrs];
 
-            if (allArgs.length === 0) return `${indent}${tagName}()`;
-            
+            if (allArgs.length === 0) return `${indent.slice(4)}${tagName}()`;
+
             const childIndent = '    '.repeat(level + 1);
-            return `${indent}${tagName}(\n${childIndent}${allArgs.join(`,\n${childIndent}`)}\n${indent})`;
+            return `${indent.slice(4)}${tagName}(\n${childIndent}${allArgs.join(`,\n${childIndent}`)}\n${indent})`;
         }
         
-        // Case 2: TEXT_NODE
         if (node.nodeType === Node.TEXT_NODE && node.textContent.trim()) {
             return `${indent}"${node.textContent.trim().replace(/"/g, '\\"')}"`;
         }
         
-        // Case 3: COMMENT_NODE
         if (node.nodeType === Node.COMMENT_NODE) {
             return `${indent}Comment("${node.textContent.trim().replace(/"/g, '\\"')}")`;
         }
@@ -123,9 +106,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /**
+     * Helper to process child nodes of a given node.
+     */
+    function processChildNodes(nodes, level, collectedCodeBlocks) {
+        return Array.from(nodes)
+            .map(node => processNode(node, level, collectedCodeBlocks))
+            .filter(Boolean);
+    }
+    
+    /**
      * Processes element attributes into Syqlorix keyword arguments.
-     * @param {NamedNodeMap} attributeNodes The attributes of a DOM node.
-     * @returns {string[]} An array of formatted attribute strings.
      */
     function processAttributes(attributeNodes) {
         return Array.from(attributeNodes).map(attr => {
