@@ -3,30 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HTML to Syqlorix Converter</title>
-    <meta name="description" content="A real-time, professional-grade tool to convert full HTML documents into runnable Syqlorix Python code with a live preview.">
+    <title>Syqlorix Studio: HTML to Python Converter</title>
+    <meta name="description" content="A professional-grade, real-time tool with a VS Code-powered editor to convert full HTML documents into runnable Syqlorix Python code.">
     <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Fira+Code&display=swap" rel="stylesheet">
+    <!-- Monaco Editor Loader -->
+    <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.41.0/min/vs/loader.js"></script>
 </head>
 <body>
 
     <header>
-        <h1>HTML to Syqlorix Converter</h1>
-        <p>A real-time tool with a live preview to convert any HTML document into a complete, runnable Syqlorix script.</p>
+        <div class="header-content">
+            <img src="https://raw.githubusercontent.com/Syqlorix/Syqlorix/main/syqlorix-logo.svg" alt="Syqlorix Logo" class="logo">
+            <h1>Syqlorix Studio</h1>
+        </div>
+        <p>The definitive tool for converting HTML into runnable Syqlorix Python scripts.</p>
     </header>
 
     <main class="main-grid">
         <div class="top-panels">
             <div class="code-panel">
-                <label for="html-input">HTML Input</label>
-                <textarea id="html-input" spellcheck="false" placeholder="<!DOCTYPE html>..."></textarea>
+                <label for="html-editor">HTML Input (with Autocomplete)</label>
+                <!-- This is the container for the Monaco Editor -->
+                <div id="html-editor"></div>
             </div>
             <div class="code-panel">
                 <div class="output-header">
                     <label for="syqlorix-output">Syqlorix Output</label>
-                    <button id="copy-button">Copy Code</button>
+                    <div class="button-group">
+                        <button id="copy-button">Copy</button>
+                        <button id="download-button">Download .py</button>
+                    </div>
                 </div>
                 <textarea id="syqlorix-output" readonly spellcheck="false" placeholder="from syqlorix import *..."></textarea>
             </div>
@@ -34,7 +43,7 @@
 
         <div class="preview-panel">
             <div class="preview-header">
-                <label>Live Preview</label>
+                <label>Live Preview of Generated Output</label>
                 <div id="status-message" class="status"></div>
             </div>
             <iframe id="preview-frame" title="Live Preview" sandbox="allow-scripts allow-same-origin"></iframe>
@@ -42,7 +51,7 @@
     </main>
 
     <footer>
-        <p>Built for the <a href="https://github.com/Syqlorix/Syqlorix" target="_blank" rel="noopener noreferrer">Syqlorix</a> project. This tool runs entirely in your browser.</p>
+        <p>Built for the <a href="https://github.com/Syqlorix/Syqlorix" target="_blank" rel="noopener noreferrer">Syqlorix</a> project.</p>
     </footer>
 
     <script src="script.js"></script>
