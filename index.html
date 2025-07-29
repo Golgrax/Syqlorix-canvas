@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTML to Syqlorix Converter</title>
+    <meta name="description" content="A real-time tool to convert standard HTML into the Syqlorix Python DSL.">
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Fira+Code&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <header>
+        <h1>HTML to Syqlorix Converter</h1>
+        <p>Paste your HTML on the left to see the Syqlorix Python code in real-time.</p>
+    </header>
+
+    <main>
+        <div class="converter-container">
+            <div class="code-panel">
+                <label for="html-input">HTML Input</label>
+                <textarea id="html-input" spellcheck="false"></textarea>
+            </div>
+            <div class="code-panel">
+                <label for="syqlorix-output">Syqlorix Output</label>
+                <textarea id="syqlorix-output" readonly spellcheck="false"></textarea>
+            </div>
+        </div>
+        <div id="status-message" class="status"></div>
+    </main>
+
+    <footer>
+        <p>Built for the <a href="https://github.com/Syqlorix/Syqlorix" target="_blank" rel="noopener noreferrer">Syqlorix</a> project. This tool runs entirely in your browser.</p>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>

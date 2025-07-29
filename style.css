@@ -1,0 +1,131 @@
+:root {
+    --bg-color: #1a1a2e;
+    --panel-bg: #2a2a4a;
+    --text-color: #e0e0e0;
+    --primary-color: #00a8cc;
+    --muted-color: #aaa;
+    --error-color: #ff5370;
+    --border-color: #444;
+    --font-main: 'Inter', sans-serif;
+    --font-code: 'Fira Code', monospace;
+}
+
+body {
+    font-family: var(--font-main);
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+header, footer {
+    text-align: center;
+    padding: 1.5rem;
+    flex-shrink: 0;
+}
+
+header h1 {
+    color: var(--primary-color);
+    margin: 0 0 0.5rem 0;
+}
+
+header p, footer p {
+    color: var(--muted-color);
+    margin: 0;
+}
+
+footer {
+    padding-block: 2rem;
+    font-size: 0.9em;
+}
+
+a {
+    color: var(--primary-color);
+    font-weight: bold;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+main {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 0 1rem;
+    max-width: 1400px;
+    width: 100%;
+    margin: 0 auto;
+    box-sizing: border-box;
+}
+
+.converter-container {
+    display: flex;
+    gap: 1.5rem;
+    flex-grow: 1;
+    min-height: 50vh; /* Ensures textareas have height even if content is small */
+}
+
+.code-panel {
+    display: flex;
+    flex-direction: column;
+    width: 50%;
+}
+
+label {
+    margin-bottom: 0.75rem;
+    font-weight: bold;
+    color: var(--muted-color);
+}
+
+textarea {
+    font-family: var(--font-code);
+    flex-grow: 1;
+    background-color: var(--panel-bg);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1rem;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    resize: none;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+textarea:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(0, 168, 204, 0.3);
+}
+
+textarea#syqlorix-output {
+    background-color: #242440; /* Slightly different to indicate readonly */
+    cursor: copy;
+}
+
+.status {
+    text-align: center;
+    padding: 1rem;
+    margin-top: 1rem;
+    border-radius: 8px;
+    font-family: var(--font-code);
+    min-height: 1.5em; /* Prevent layout shift */
+    display: none; /* Hidden by default */
+}
+
+.status.error {
+    background-color: rgba(255, 83, 112, 0.1);
+    color: var(--error-color);
+    border: 1px solid var(--error-color);
+    display: block;
+}
+
+.status.success {
+    background-color: rgba(0, 168, 204, 0.1);
+    color: var(--primary-color);
+    border: 1px solid var(--primary-color);
+    display: block;
+}
