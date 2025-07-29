@@ -56,7 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
             let tagName = node.tagName.toLowerCase();
             
             // For the preview, we need the original tags, but for the code, we need the Python-safe versions
-            if (['script', 'style', 'head', 'body', 'title'].includes(tagName)) return null;
+            if (['script', 'style'].includes(tagName)) return null;
 
             let pythonTagName = tagName;
             if (pythonTagName === 'html') pythonTagName = 'Syqlorix';
