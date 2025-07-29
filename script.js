@@ -1,131 +1,143 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // --- UI Elements ---
     const htmlInput = document.getElementById('html-input');
     const syqlorixOutput = document.getElementById('syqlorix-output');
     const statusMessage = document.getElementById('status-message');
     const copyButton = document.getElementById('copy-button');
 
+    // --- Syqlorix Constants ---
     const KEYWORD_MAP = { 'class': 'class_', 'for': 'for_', 'input': 'input_' };
-    const BOOLEAN_ATTRIBUTES = new Set(['disabled', 'checked', 'selected', 'required', 'readonly', 'multiple', 'autoplay', 'controls', 'loop', 'muted', 'playsinline', 'defer', 'async']);
+    const BOOLEAN_ATTRIBUTES = new Set(['disabled', 'checked', 'selected', 'required', 'readonly', 'multiple', 'autoplay', 'controls', 'loop', 'muted', 'playsinline', 'defer', 'async', 'novalidate', 'formnovalidate']);
 
     /**
-     * The main conversion function. Generates a complete Syqlorix Python script.
-     * @param {string} htmlString - The full HTML document to convert.
-     * @returns {string} The resulting Syqlorix Python script.
+     * Main entry point for conversion.
+     * @param {string} htmlString The full HTML document as text.
+     * @returns {string} The complete and formatted Syqlorix Python script.
      */
     function convertHtmlToSyqlorix(htmlString) {
+        // --- Initialization ---
         const parser = new DOMParser();
         const doc = parser.parseFromString(htmlString, 'text/html');
 
+        // Check for parsing errors which indicate invalid HTML
         if (doc.getElementsByTagName('parsererror').length > 0) {
             throw new Error('Invalid HTML. Check for unclosed tags or syntax errors.');
         }
 
+        const collectedCodeBlocks = []; // To hold CSS and JS for variable definitions
+        const INDENT = '    '; // Standard Python indentation
+
+        // --- Processing ---
         const headNode = doc.head;
         const bodyNode = doc.body;
 
-        const headContent = headNode ? Array.from(headNode.childNodes).map(node => processNode(node, 1)).filter(Boolean) : [];
-        const bodyContent = bodyNode ? Array.from(bodyNode.childNodes).map(node => processNode(node, 1)).filter(Boolean) : [];
-        
-        const indent = '    ';
-        let headBlock = '';
-        if (headContent.length > 0) {
-            headBlock = `head(\n${indent.repeat(2)}${headContent.join(`,\n${indent.repeat(2)}`)}\n${indent})`;
-        }
+        const headContent = processChildNodes(headNode.childNodes, 2, collectedCodeBlocks);
+        const bodyContent = processChildNodes(bodyNode.childNodes, 2, collectedCodeBlocks);
 
-        let bodyBlock = '';
-        if (bodyContent.length > 0) {
-            bodyBlock = `body(\n${indent.repeat(2)}${bodyContent.join(`,\n${indent.repeat(2)}`)}\n${indent})`;
+        // --- Assembly ---
+        let variableDefinitions = collectedCodeBlocks
+            .map(block => `${block.name} = """${block.content}"""`)
+            .join('\n\n');
+        
+        const headBlock = headContent.length > 0
+            ? `${INDENT}head(\n${headContent.join(',\n')}\n${INDENT})`
+            : '';
+            
+        const bodyBlock = bodyContent.length > 0
+            ? `${INDENT}body(\n${bodyContent.join(',\n')}\n${INDENT})`
+            : '';
+
+        const docArgs = [headBlock, bodyBlock].filter(Boolean).join(`,\n`);
+        
+        let finalScript = 'from syqlorix import *\n\n';
+        finalScript += '# NOTE: The <!DOCTYPE> declaration is automatically handled by Syqlorix.\n\n';
+
+        if(variableDefinitions){
+            finalScript += variableDefinitions + '\n\n';
         }
         
-        const finalArgs = [headBlock, bodyBlock].filter(Boolean).join(',\n' + indent);
-
-        return `from syqlorix import *\n\n# The <!DOCTYPE html> is added automatically by Syqlorix during rendering.\ndoc = Syqlorix(\n${indent}${finalArgs}\n)\n`;
+        finalScript += `doc = Syqlorix(\n${docArgs}\n)`;
+        
+        return finalScript;
     }
 
     /**
-     * Recursively processes a single DOM node into its Syqlorix representation.
-     * @param {Node} node - The DOM node to process.
-     * @param {number} indentLevel - The current indentation level.
-     * @returns {string|null} The Syqlorix string for the node, or null.
+     * Processes an array of DOM nodes recursively.
+     * @param {NodeListOf<ChildNode>} nodes The list of nodes to process.
+     * @param {number} level The current indentation level.
+     * @param {Array<Object>} collectedCodeBlocks The accumulator for style/script content.
+     * @returns {string[]} An array of Syqlorix string representations for the nodes.
      */
-    function processNode(node, indentLevel) {
-        const indent = '    '.repeat(indentLevel);
+    function processChildNodes(nodes, level, collectedCodeBlocks) {
+        return Array.from(nodes)
+            .map(node => processNode(node, level, collectedCodeBlocks))
+            .filter(Boolean); // Filter out null results (like whitespace text nodes)
+    }
 
-        // Case 1: Element Node (e.g., <div>, <p>, <style>)
+    /**
+     * Processes a single DOM node.
+     */
+    function processNode(node, level, collectedCodeBlocks) {
+        const indent = '    '.repeat(level);
+
+        // Case 1: ELEMENT_NODE (e.g., <div>, <p>)
         if (node.nodeType === Node.ELEMENT_NODE) {
             let tagName = node.tagName.toLowerCase();
 
-            // Special handling for style tags - use multiline string content
-            if (tagName === 'style') {
-                const styleContent = node.innerHTML.trim();
-                return `${indent}style("""\n${styleContent}\n${indent}""")`;
+            // Handle internal <style> and <script> tags idiomatically
+            const isInternalScript = tagName === 'script' && !node.hasAttribute('src');
+            const isInternalStyle = tagName === 'style';
+
+            if (isInternalStyle || isInternalScript) {
+                const contentType = isInternalStyle ? 'css' : 'js';
+                const content = node.innerHTML.trim();
+                const variableName = `internal_${contentType}_${collectedCodeBlocks.filter(b => b.type === contentType).length + 1}`;
+                
+                collectedCodeBlocks.push({ name: variableName, content: content, type: contentType });
+                return `${indent}${tagName}(${variableName})`;
             }
 
-            // Special handling for script tags
-            if (tagName === 'script') {
-                if (node.hasAttribute('src')) {
-                    const attrs = processAttributes(node.attributes, indentLevel);
-                    return `${indent}script(${attrs.join(', ')})`;
-                }
-                const scriptContent = node.innerHTML.trim();
-                return `${indent}script("""\n${scriptContent}\n${indent}""")`;
-            }
-            
             tagName = KEYWORD_MAP[tagName] || tagName;
 
-            const children = Array.from(node.childNodes).map(child => processNode(child, indentLevel + 1)).filter(Boolean);
-            const attrs = processAttributes(node.attributes, indentLevel);
+            const children = processChildNodes(node.childNodes, level + 1, collectedCodeBlocks);
+            const attrs = processAttributes(node.attributes);
             const allArgs = [...children, ...attrs];
 
-            if (allArgs.length === 0) {
-                return `${indent}${tagName}()`;
-            }
-            const childrenIndent = '    '.repeat(indentLevel + 1);
-            return `${indent}${tagName}(\n${childrenIndent}${allArgs.join(`,\n${childrenIndent}`)}\n${indent})`;
+            if (allArgs.length === 0) return `${indent}${tagName}()`;
+            
+            const childIndent = '    '.repeat(level + 1);
+            return `${indent}${tagName}(\n${childIndent}${allArgs.join(`,\n${childIndent}`)}\n${indent})`;
         }
         
-        // Case 2: Text Node
-        if (node.nodeType === Node.TEXT_NODE) {
-            const text = node.textContent;
-            // Ignore text nodes that are only whitespace
-            if (text.trim()) {
-                // Use triple quotes for multiline text, otherwise regular quotes.
-                // Escape backslashes for Python.
-                const escapedText = text.replace(/\\/g, '\\\\');
-                if (escapedText.includes('\n')) {
-                    return `${indent}"""${escapedText}"""`;
-                }
-                return `${indent}"${escapedText.replace(/"/g, '\\"')}"`;
-            }
+        // Case 2: TEXT_NODE
+        if (node.nodeType === Node.TEXT_NODE && node.textContent.trim()) {
+            return `${indent}"${node.textContent.trim().replace(/"/g, '\\"')}"`;
         }
         
-        // Case 3: Comment Node
+        // Case 3: COMMENT_NODE
         if (node.nodeType === Node.COMMENT_NODE) {
-            const commentText = node.textContent.trim().replace(/"/g, '\\"');
-            return `${indent}Comment("${commentText}")`;
+            return `${indent}Comment("${node.textContent.trim().replace(/"/g, '\\"')}")`;
         }
         
-        return null; // Ignore other node types
+        return null;
     }
 
     /**
-     * Processes a Node's attributes into a list of Syqlorix keyword arguments.
-     * @param {NamedNodeMap} attributeNodes - The attributes from a DOM node.
-     * @param {number} indentLevel - The current indentation level.
+     * Processes element attributes into Syqlorix keyword arguments.
+     * @param {NamedNodeMap} attributeNodes The attributes of a DOM node.
      * @returns {string[]} An array of formatted attribute strings.
      */
-    function processAttributes(attributeNodes, indentLevel) {
+    function processAttributes(attributeNodes) {
         return Array.from(attributeNodes).map(attr => {
-            const name = KEYWORD_MAP[attr.name] || attr.name;
+            const name = KEYWORD_MAP[attr.name.toLowerCase()] || attr.name;
             if (BOOLEAN_ATTRIBUTES.has(attr.name) && attr.value === '') {
                 return `${name}=True`;
             }
-            const value = attr.value.replace(/"/g, '\\"');
-            return `${name}="${value}"`;
+            return `${name}="${attr.value.replace(/"/g, '\\"')}"`;
         });
     }
 
-    // Real-time conversion logic
+    // --- Event Handlers and Initialization ---
     function handleInput() {
         const html = htmlInput.value;
         if (!html.trim()) {
@@ -139,16 +151,14 @@ document.addEventListener('DOMContentLoaded', () => {
             syqlorixOutput.value = syqlorixCode;
             statusMessage.style.display = 'none';
         } catch (error) {
-            syqlorixOutput.value = `# Error: Could not convert HTML.\n\n# ${error.message}`;
+            syqlorixOutput.value = `# Error: Could not convert HTML.\n# ${error.message}`;
             statusMessage.textContent = error.message;
             statusMessage.className = 'status error';
         }
     }
     
-    // Copy to clipboard functionality
     copyButton.addEventListener('click', () => {
         if (!syqlorixOutput.value) return;
-        
         navigator.clipboard.writeText(syqlorixOutput.value).then(() => {
             copyButton.textContent = 'Copied!';
             copyButton.classList.add('copied');
@@ -156,44 +166,41 @@ document.addEventListener('DOMContentLoaded', () => {
                 copyButton.textContent = 'Copy Code';
                 copyButton.classList.remove('copied');
             }, 2000);
-        }).catch(err => {
-            console.error('Failed to copy text: ', err);
-            statusMessage.textContent = 'Failed to copy code to clipboard.';
-            statusMessage.className = 'status error';
         });
     });
-    
-    // Set a comprehensive default example on page load
+
     function setDefaultExample() {
         const defaultHtml = `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Sample Page</title>
+    <title>Syqlorix Demo Page</title>
+    <!-- An external stylesheet link -->
+    <link rel="stylesheet" href="/static/styles.css">
     <style>
-        body { font-family: sans-serif; background: #333; color: #fff; }
-        .container { max-width: 800px; margin: 2rem auto; }
+        body { font-family: sans-serif; background: #1a1a2e; color: #e0e0e0; }
+        .container { max-width: 800px; margin: 2rem auto; padding: 2rem; border-radius: 8px; }
     </style>
 </head>
 <body>
-    <!-- This is a demonstration -->
     <div class="container" id="main-content">
         <h1>Welcome!</h1>
-        <p>This demonstrates the converter.</p>
+        <p>This page was converted to a complete Syqlorix script.</p>
         <form action="/submit" method="post">
-            <label for="name">Name:</label>
-            <input class="user-input" type="text" id="name" name="username" required>
-            <input type="submit" value="Submit" disabled>
+            <label for="username-field">Username:</label>
+            <input class="user-input" type="text" id="username-field" name="username" required>
+            <button type="submit" disabled>Submit</button>
         </form>
     </div>
-    <script src="/assets/main.js" defer></script>
+    <script>
+        console.log("This internal script is now a variable in Python!");
+    </script>
 </body>
 </html>`;
         htmlInput.value = defaultHtml;
         handleInput();
     }
     
-    // Attach event listeners and run on load
     htmlInput.addEventListener('input', handleInput);
     setDefaultExample();
 });
