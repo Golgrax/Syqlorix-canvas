@@ -1,154 +1,122 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // --- UI Elements ---
     const htmlInput = document.getElementById('html-input');
     const syqlorixOutput = document.getElementById('syqlorix-output');
-    const statusMessage = document.getElementById('status-message');
     const copyButton = document.getElementById('copy-button');
+    const statusMessage = document.getElementById('status-message');
 
-    // --- Syqlorix Constants ---
-    const KEYWORD_MAP = { 'class': 'class_', 'for': 'for_', 'input': 'input_' };
-    const BOOLEAN_ATTRIBUTES = new Set(['disabled', 'checked', 'selected', 'required', 'readonly', 'multiple', 'autoplay', 'controls', 'loop', 'muted', 'playsinline', 'defer', 'async', 'novalidate', 'formnovalidate']);
+    // --- Main Conversion Logic ---
 
-    /**
-     * Main entry point for conversion. This function now orchestrates the creation of
-     * a fully idiomatic Syqlorix Python script.
-     * @param {string} htmlString - The full HTML document as text.
-     * @returns {string} The complete and formatted Syqlorix Python script.
-     */
-    function convertHtmlToSyqlorix(htmlString) {
-        // --- Initialization ---
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(htmlString, 'text/html');
+    const convertHtmlToSyqlorix = (htmlString) => {
+        try {
+            if (!htmlString.trim().toLowerCase().startsWith('<!doctype html>')) {
+                throw new Error("Input must be a full HTML document, starting with <!DOCTYPE html>.");
+            }
+            
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlString, 'text/html');
 
-        if (doc.getElementsByTagName('parsererror').length > 0) {
-            throw new Error('Invalid HTML. Check for unclosed tags or syntax errors.');
+            const parseError = doc.querySelector('parsererror');
+            if (parseError) {
+                throw new Error("HTML parsing error. Please check your document for issues.");
+            }
+
+            const rootElement = doc.documentElement; // This is the <html> tag
+            if (!rootElement) {
+                throw new Error("No <html> tag found in the document.");
+            }
+            
+            // The main recursive call
+            const syqlorixCode = processNode(rootElement, 0);
+
+            // Wrap in the final Syqlorix application structure
+            return `from syqlorix import *\n\n# Main application object\ndoc = ${syqlorixCode}`;
+
+        } catch (e) {
+            showStatus(e.message, 'error');
+            return `from syqlorix import *\n\n# Conversion failed: ${e.message}`;
+        }
+    };
+
+    // --- Recursive Node Processor ---
+
+    const processNode = (node, indentLevel) => {
+        const indent = '    '.repeat(indentLevel);
+
+        // 1. Handle Text Nodes
+        if (node.nodeType === Node.TEXT_NODE) {
+            const text = node.textContent.trim();
+            return text ? `${indent}"${text.replace(/"/g, '\\"')}"` : null;
         }
 
-        const collectedCodeBlocks = []; // To hold CSS and JS for variable definitions at the top
-        const INDENT = '    ';
-
-        // --- Processing ---
-        // We now process head and body to get their component representations
-        const headComponent = processNode(doc.head, 1, collectedCodeBlocks);
-        const bodyComponent = processNode(doc.body, 1, collectedCodeBlocks);
-        
-        // --- Final Script Assembly ---
-        let variableDefinitions = collectedCodeBlocks
-            .map(block => `${block.name} = """\n${block.content}\n"""`)
-            .join('\n\n');
-
-        let finalScript = 'from syqlorix import *\n';
-        finalScript += '# NOTE: Components, functions, and routes cannot be inferred from static HTML.\n\n';
-
-        if (variableDefinitions) {
-            finalScript += variableDefinitions + '\n\n';
+        // 2. Handle Comment Nodes
+        if (node.nodeType === Node.COMMENT_NODE) {
+            const text = node.textContent.trim();
+            return `${indent}Comment("${text.replace(/"/g, '\\"')}")`;
         }
         
-        // This part now generates the correct `doc / ...` structure
-        finalScript += '# --- Build the document using the division operator for nesting ---\n';
-        finalScript += 'doc = Syqlorix()\n\n';
-        if (headComponent) {
-            finalScript += `doc / ${headComponent}\n\n`;
-        }
-        if (bodyComponent) {
-            finalScript += `doc / ${bodyComponent}\n`;
-        }
-        
-        return finalScript;
-    }
-
-    /**
-     * Recursively processes a single DOM node into its Syqlorix representation.
-     * @param {Node} node - The DOM node to process.
-     * @param {number} level - The current indentation level for pretty-printing.
-     * @param {Array<Object>} collectedCodeBlocks - The accumulator for style/script content.
-     * @returns {string|null} The Syqlorix string for the node, or null.
-     */
-    function processNode(node, level, collectedCodeBlocks) {
-        const indent = '    '.repeat(level);
-        
+        // 3. Handle Element Nodes
         if (node.nodeType === Node.ELEMENT_NODE) {
             let tagName = node.tagName.toLowerCase();
+            
+            // Skip elements that Syqlorix handles differently
+            if (['script', 'style'].includes(tagName)) return null; 
 
-            // Handle internal <style> and <script> tags by extracting their content to variables
-            const isInternalScript = tagName === 'script' && !node.hasAttribute('src');
-            const isInternalStyle = tagName === 'style';
+            // Handle special Syqlorix class names and Python keywords
+            if (tagName === 'html') tagName = 'Syqlorix';
+            if (tagName === 'input') tagName = 'input_';
 
-            if (isInternalStyle || isInternalScript) {
-                const contentType = isInternalStyle ? 'css' : 'js';
-                const content = node.innerHTML.trim();
-                const variableName = `internal_${contentType}_${collectedCodeBlocks.filter(b => b.type === contentType).length + 1}`;
-                
-                collectedCodeBlocks.push({ name: variableName, content: content, type: contentType });
-                return `${indent.slice(4)}${tagName}(${variableName})`;
+            const children = Array.from(node.childNodes)
+                .map(child => processNode(child, indentLevel + 1))
+                .filter(child => child !== null); // Filter out null results
+
+            const attributes = Array.from(node.attributes)
+                .map(attr => {
+                    const attrName = attr.name === 'class' ? 'class_' : attr.name.replace(/-/g, '_');
+                    // For boolean attributes (e.g., 'disabled'), handle them correctly
+                    if (attr.value === '') return `${attrName}=True`;
+                    return `${attrName}="${attr.value.replace(/"/g, '\\"')}"`;
+                });
+            
+            let args = [];
+            if (children.length > 0) {
+                 args.push(`\n${children.join(',\n')}\n${indent}`);
             }
-
-            tagName = KEYWORD_MAP[tagName] || tagName;
-            const children = processChildNodes(node.childNodes, level + 1, collectedCodeBlocks);
-            const attrs = processAttributes(node.attributes);
-            const allArgs = [...children, ...attrs];
-
-            if (allArgs.length === 0) return `${indent.slice(4)}${tagName}()`;
-
-            const childIndent = '    '.repeat(level + 1);
-            return `${indent.slice(4)}${tagName}(\n${childIndent}${allArgs.join(`,\n${childIndent}`)}\n${indent})`;
+            if (attributes.length > 0) {
+                // Add a comma if there are children
+                if (children.length > 0) args.push(', ');
+                args.push(attributes.join(', '));
+            }
+            
+            return `${indent}${tagName}(${args.join('')})`;
         }
-        
-        if (node.nodeType === Node.TEXT_NODE && node.textContent.trim()) {
-            return `${indent}"${node.textContent.trim().replace(/"/g, '\\"')}"`;
-        }
-        
-        if (node.nodeType === Node.COMMENT_NODE) {
-            return `${indent}Comment("${node.textContent.trim().replace(/"/g, '\\"')}")`;
-        }
-        
-        return null;
-    }
 
-    /**
-     * Helper to process child nodes of a given node.
-     */
-    function processChildNodes(nodes, level, collectedCodeBlocks) {
-        return Array.from(nodes)
-            .map(node => processNode(node, level, collectedCodeBlocks))
-            .filter(Boolean);
-    }
+        return null; // Ignore other node types
+    };
     
-    /**
-     * Processes element attributes into Syqlorix keyword arguments.
-     */
-    function processAttributes(attributeNodes) {
-        return Array.from(attributeNodes).map(attr => {
-            const name = KEYWORD_MAP[attr.name.toLowerCase()] || attr.name;
-            if (BOOLEAN_ATTRIBUTES.has(attr.name) && attr.value === '') {
-                return `${name}=True`;
-            }
-            return `${name}="${attr.value.replace(/"/g, '\\"')}"`;
-        });
-    }
+    // --- UI Event Handlers ---
 
-    // --- Event Handlers and Initialization ---
-    function handleInput() {
+    const showStatus = (message, type = 'info') => {
+        statusMessage.textContent = message;
+        statusMessage.className = `status ${type}`;
+    };
+
+    htmlInput.addEventListener('input', () => {
         const html = htmlInput.value;
-        if (!html.trim()) {
+        if (html.trim() === '') {
             syqlorixOutput.value = '';
             statusMessage.style.display = 'none';
             return;
         }
+        statusMessage.style.display = 'none';
+        const result = convertHtmlToSyqlorix(html);
+        syqlorixOutput.value = result;
+    });
 
-        try {
-            const syqlorixCode = convertHtmlToSyqlorix(html);
-            syqlorixOutput.value = syqlorixCode;
-            statusMessage.style.display = 'none';
-        } catch (error) {
-            syqlorixOutput.value = `# Error: Could not convert HTML.\n# ${error.message}`;
-            statusMessage.textContent = error.message;
-            statusMessage.className = 'status error';
-        }
-    }
-    
     copyButton.addEventListener('click', () => {
-        if (!syqlorixOutput.value) return;
+        if (!syqlorixOutput.value || syqlorixOutput.value.startsWith('from syqlorix import *\n\n# Conversion failed:')) {
+            showStatus('Nothing to copy or conversion failed.', 'error');
+            return;
+        }
         navigator.clipboard.writeText(syqlorixOutput.value).then(() => {
             copyButton.textContent = 'Copied!';
             copyButton.classList.add('copied');
@@ -156,41 +124,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 copyButton.textContent = 'Copy Code';
                 copyButton.classList.remove('copied');
             }, 2000);
+        }).catch(() => {
+            showStatus('Failed to copy to clipboard.', 'error');
         });
     });
-
-    function setDefaultExample() {
-        const defaultHtml = `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Syqlorix Demo Page</title>
-    <!-- An external stylesheet link -->
-    <link rel="stylesheet" href="/static/styles.css">
-    <style>
-        body { font-family: sans-serif; background: #1a1a2e; color: #e0e0e0; }
-        .container { max-width: 800px; margin: 2rem auto; padding: 2rem; border-radius: 8px; }
-    </style>
-</head>
-<body>
-    <div class="container" id="main-content">
-        <h1>Welcome!</h1>
-        <p>This page was converted to a complete Syqlorix script.</p>
-        <form action="/submit" method="post">
-            <label for="username-field">Username:</label>
-            <input class="user-input" type="text" id="username-field" name="username" required>
-            <button type="submit" disabled>Submit</button>
-        </form>
-    </div>
-    <script>
-        console.log("This internal script is now a variable in Python!");
-    </script>
-</body>
-</html>`;
-        htmlInput.value = defaultHtml;
-        handleInput();
-    }
-    
-    htmlInput.addEventListener('input', handleInput);
-    setDefaultExample();
 });
