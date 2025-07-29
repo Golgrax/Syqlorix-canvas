@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HTML to Syqlorix Converter</title>
-    <meta name="description" content="A real-time tool to convert standard HTML into the Syqlorix Python DSL.">
+    <meta name="description" content="A real-time, professional-grade tool to convert full HTML documents into runnable Syqlorix Python code.">
     <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,18 +14,21 @@
 
     <header>
         <h1>HTML to Syqlorix Converter</h1>
-        <p>Paste your HTML on the left to see the Syqlorix Python code in real-time.</p>
+        <p>Paste your full HTML document below to generate a complete, runnable Syqlorix Python script.</p>
     </header>
 
     <main>
         <div class="converter-container">
             <div class="code-panel">
                 <label for="html-input">HTML Input</label>
-                <textarea id="html-input" spellcheck="false"></textarea>
+                <textarea id="html-input" spellcheck="false" placeholder="<!DOCTYPE html>..."></textarea>
             </div>
             <div class="code-panel">
-                <label for="syqlorix-output">Syqlorix Output</label>
-                <textarea id="syqlorix-output" readonly spellcheck="false"></textarea>
+                <div class="output-header">
+                    <label for="syqlorix-output">Syqlorix Output</label>
+                    <button id="copy-button">Copy Code</button>
+                </div>
+                <textarea id="syqlorix-output" readonly spellcheck="false" placeholder="from syqlorix import *..."></textarea>
             </div>
         </div>
         <div id="status-message" class="status"></div>

@@ -3,6 +3,7 @@
     --panel-bg: #2a2a4a;
     --text-color: #e0e0e0;
     --primary-color: #00a8cc;
+    --success-color: #4ec9b0;
     --muted-color: #aaa;
     --error-color: #ff5370;
     --border-color: #444;
@@ -56,7 +57,7 @@ main {
     display: flex;
     flex-direction: column;
     padding: 0 1rem;
-    max-width: 1400px;
+    max-width: 1600px;
     width: 100%;
     margin: 0 auto;
     box-sizing: border-box;
@@ -66,19 +67,50 @@ main {
     display: flex;
     gap: 1.5rem;
     flex-grow: 1;
-    min-height: 50vh; /* Ensures textareas have height even if content is small */
+    min-height: 60vh;
 }
 
 .code-panel {
     display: flex;
     flex-direction: column;
-    width: 50%;
+    flex: 1;
+    min-width: 0;
+}
+
+.output-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
 }
 
 label {
-    margin-bottom: 0.75rem;
     font-weight: bold;
     color: var(--muted-color);
+}
+
+#copy-button {
+    background-color: var(--primary-color);
+    color: var(--bg-color);
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-family: var(--font-main);
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.1s;
+}
+
+#copy-button:hover {
+    background-color: #00c0e8;
+}
+
+#copy-button:active {
+    transform: scale(0.98);
+}
+
+#copy-button.copied {
+    background-color: var(--success-color);
 }
 
 textarea {
@@ -89,7 +121,7 @@ textarea {
     border: 1px solid var(--border-color);
     border-radius: 8px;
     padding: 1rem;
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     line-height: 1.6;
     resize: none;
     outline: none;
@@ -102,8 +134,7 @@ textarea:focus {
 }
 
 textarea#syqlorix-output {
-    background-color: #242440; /* Slightly different to indicate readonly */
-    cursor: copy;
+    background-color: #242440;
 }
 
 .status {
@@ -112,20 +143,13 @@ textarea#syqlorix-output {
     margin-top: 1rem;
     border-radius: 8px;
     font-family: var(--font-code);
-    min-height: 1.5em; /* Prevent layout shift */
-    display: none; /* Hidden by default */
+    min-height: 1.5em;
+    display: none;
 }
 
 .status.error {
     background-color: rgba(255, 83, 112, 0.1);
     color: var(--error-color);
     border: 1px solid var(--error-color);
-    display: block;
-}
-
-.status.success {
-    background-color: rgba(0, 168, 204, 0.1);
-    color: var(--primary-color);
-    border: 1px solid var(--primary-color);
     display: block;
 }
