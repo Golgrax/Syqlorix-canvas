@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HTML to Syqlorix Converter</title>
-    <meta name="description" content="A real-time, professional-grade tool to convert full HTML documents into runnable Syqlorix Python code.">
+    <meta name="description" content="A real-time, professional-grade tool to convert full HTML documents into runnable Syqlorix Python code with a live preview.">
     <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,11 +14,11 @@
 
     <header>
         <h1>HTML to Syqlorix Converter</h1>
-        <p>Paste your full HTML document below to generate a complete, runnable Syqlorix Python script.</p>
+        <p>A real-time tool with a live preview to convert any HTML document into a complete, runnable Syqlorix script.</p>
     </header>
 
-    <main>
-        <div class="converter-container">
+    <main class="main-grid">
+        <div class="top-panels">
             <div class="code-panel">
                 <label for="html-input">HTML Input</label>
                 <textarea id="html-input" spellcheck="false" placeholder="<!DOCTYPE html>..."></textarea>
@@ -31,7 +31,14 @@
                 <textarea id="syqlorix-output" readonly spellcheck="false" placeholder="from syqlorix import *..."></textarea>
             </div>
         </div>
-        <div id="status-message" class="status"></div>
+
+        <div class="preview-panel">
+            <div class="preview-header">
+                <label>Live Preview</label>
+                <div id="status-message" class="status"></div>
+            </div>
+            <iframe id="preview-frame" title="Live Preview" sandbox="allow-scripts allow-same-origin"></iframe>
+        </div>
     </main>
 
     <footer>

@@ -3,117 +3,118 @@ document.addEventListener('DOMContentLoaded', () => {
     const syqlorixOutput = document.getElementById('syqlorix-output');
     const copyButton = document.getElementById('copy-button');
     const statusMessage = document.getElementById('status-message');
+    const previewFrame = document.getElementById('preview-frame');
+
+    const initialPreviewContent = `
+        <body style="font-family: sans-serif; color: #555; display: grid; place-content: center; height: 100%; margin: 0;">
+            <p>Live preview will appear here.</p>
+        </body>
+    `;
+    previewFrame.srcdoc = initialPreviewContent;
 
     // --- Main Conversion Logic ---
-
     const convertHtmlToSyqlorix = (htmlString) => {
         try {
             if (!htmlString.trim().toLowerCase().startsWith('<!doctype html>')) {
                 throw new Error("Input must be a full HTML document, starting with <!DOCTYPE html>.");
             }
-            
             const parser = new DOMParser();
             const doc = parser.parseFromString(htmlString, 'text/html');
-
             const parseError = doc.querySelector('parsererror');
             if (parseError) {
-                throw new Error("HTML parsing error. Please check your document for issues.");
+                throw new Error("HTML parsing error. Check for unclosed tags or syntax issues.");
             }
-
-            const rootElement = doc.documentElement; // This is the <html> tag
-            if (!rootElement) {
-                throw new Error("No <html> tag found in the document.");
-            }
+            const rootElement = doc.documentElement;
+            if (!rootElement) throw new Error("No <html> tag found.");
             
-            // The main recursive call
             const syqlorixCode = processNode(rootElement, 0);
-
-            // Wrap in the final Syqlorix application structure
-            return `from syqlorix import *\n\n# Main application object\ndoc = ${syqlorixCode}`;
-
+            return {
+                success: true,
+                code: `from syqlorix import *\n\n# Main application object\ndoc = ${syqlorixCode}`
+            };
         } catch (e) {
             showStatus(e.message, 'error');
-            return `from syqlorix import *\n\n# Conversion failed: ${e.message}`;
+            return {
+                success: false,
+                code: `from syqlorix import *\n\n# Conversion failed: ${e.message}`
+            };
         }
     };
 
     // --- Recursive Node Processor ---
-
     const processNode = (node, indentLevel) => {
         const indent = '    '.repeat(indentLevel);
-
-        // 1. Handle Text Nodes
         if (node.nodeType === Node.TEXT_NODE) {
             const text = node.textContent.trim();
             return text ? `${indent}"${text.replace(/"/g, '\\"')}"` : null;
         }
-
-        // 2. Handle Comment Nodes
         if (node.nodeType === Node.COMMENT_NODE) {
             const text = node.textContent.trim();
             return `${indent}Comment("${text.replace(/"/g, '\\"')}")`;
         }
-        
-        // 3. Handle Element Nodes
         if (node.nodeType === Node.ELEMENT_NODE) {
             let tagName = node.tagName.toLowerCase();
             
-            // Skip elements that Syqlorix handles differently
-            if (['script', 'style'].includes(tagName)) return null; 
+            // For the preview, we need the original tags, but for the code, we need the Python-safe versions
+            if (['script', 'style', 'head', 'body', 'title'].includes(tagName)) return null;
 
-            // Handle special Syqlorix class names and Python keywords
-            if (tagName === 'html') tagName = 'Syqlorix';
-            if (tagName === 'input') tagName = 'input_';
+            let pythonTagName = tagName;
+            if (pythonTagName === 'html') pythonTagName = 'Syqlorix';
+            if (pythonTagName === 'input') pythonTagName = 'input_';
 
-            const children = Array.from(node.childNodes)
-                .map(child => processNode(child, indentLevel + 1))
-                .filter(child => child !== null); // Filter out null results
-
-            const attributes = Array.from(node.attributes)
-                .map(attr => {
-                    const attrName = attr.name === 'class' ? 'class_' : attr.name.replace(/-/g, '_');
-                    // For boolean attributes (e.g., 'disabled'), handle them correctly
-                    if (attr.value === '') return `${attrName}=True`;
-                    return `${attrName}="${attr.value.replace(/"/g, '\\"')}"`;
-                });
+            const children = Array.from(node.childNodes).map(child => processNode(child, indentLevel + 1)).filter(Boolean);
+            const attributes = Array.from(node.attributes).map(attr => {
+                const attrName = attr.name === 'class' ? 'class_' : attr.name.replace(/-/g, '_');
+                if (attr.value === '') return `${attrName}=True`;
+                return `${attrName}="${attr.value.replace(/"/g, '\\"')}"`;
+            });
             
             let args = [];
-            if (children.length > 0) {
-                 args.push(`\n${children.join(',\n')}\n${indent}`);
-            }
+            if (children.length > 0) args.push(`\n${children.join(',\n')}\n${indent}`);
             if (attributes.length > 0) {
-                // Add a comma if there are children
                 if (children.length > 0) args.push(', ');
                 args.push(attributes.join(', '));
             }
             
-            return `${indent}${tagName}(${args.join('')})`;
+            return `${indent}${pythonTagName}(${args.join('')})`;
         }
-
-        return null; // Ignore other node types
+        return null;
     };
     
     // --- UI Event Handlers ---
-
-    const showStatus = (message, type = 'info') => {
+    const showStatus = (message, type = 'error') => {
         statusMessage.textContent = message;
         statusMessage.className = `status ${type}`;
+        statusMessage.style.display = 'block';
+    };
+
+    const hideStatus = () => {
+        statusMessage.style.display = 'none';
+        statusMessage.textContent = '';
     };
 
     htmlInput.addEventListener('input', () => {
         const html = htmlInput.value;
+        hideStatus();
+
         if (html.trim() === '') {
             syqlorixOutput.value = '';
-            statusMessage.style.display = 'none';
+            previewFrame.srcdoc = initialPreviewContent;
             return;
         }
-        statusMessage.style.display = 'none';
+
         const result = convertHtmlToSyqlorix(html);
-        syqlorixOutput.value = result;
+        syqlorixOutput.value = result.code;
+        
+        if (result.success) {
+            previewFrame.srcdoc = html;
+        } else {
+            previewFrame.srcdoc = `<body style="font-family: sans-serif; color: #c00; display: grid; place-content: center; height: 100%; margin: 0;"><p>HTML has errors. Preview is paused.</p></body>`;
+        }
     });
 
     copyButton.addEventListener('click', () => {
-        if (!syqlorixOutput.value || syqlorixOutput.value.startsWith('from syqlorix import *\n\n# Conversion failed:')) {
+        if (!syqlorixOutput.value || !syqlorixOutput.value.includes('doc = Syqlorix')) {
             showStatus('Nothing to copy or conversion failed.', 'error');
             return;
         }
@@ -124,8 +125,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 copyButton.textContent = 'Copy Code';
                 copyButton.classList.remove('copied');
             }, 2000);
-        }).catch(() => {
-            showStatus('Failed to copy to clipboard.', 'error');
-        });
+        }).catch(() => showStatus('Failed to copy to clipboard.', 'error'));
     });
 });
