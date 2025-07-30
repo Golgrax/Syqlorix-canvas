@@ -176,3 +176,8 @@ label {
     padding: 0.5rem;
     font-family: var(--font-main);
 }
+
+.status.success {
+    color: var(--success-color);
+    display: block;
+}

@@ -161,36 +161,37 @@ document.addEventListener('DOMContentLoaded', () => {
         return '';
     };
 
+
     const convertHtmlToSyqlorix = (htmlString) => {
         try {
-            if (!htmlString.trim().toLowerCase().startsWith('<!doctype html>')) throw new Error("Input must be a full HTML document.");
             const parser = new DOMParser();
             const doc = parser.parseFromString(htmlString, 'text/html');
             const parseError = doc.querySelector('parsererror');
             if (parseError) throw new Error("HTML parsing error. Check for unclosed tags.");
-            const rootElement = doc.documentElement;
-            if (!rootElement) throw new Error("No <html> tag found.");
             
-            const syqlorixCode = processNodeForPython(rootElement, 1);
-            
-            const finalCode = `from syqlorix import *\n\n` +
-                            `# Main application object\n` +
-                            `doc = Syqlorix()\n\n` +
-                            `# Define a route for the root URL\n` +
-                            `@doc.route('/')\n` +
-                            `def main_page(request):\n` +
-                            `    return ${syqlorixCode}\n\n` +
-                            `# To run this script, save it as app.py and then execute in your terminal:\n` +
-                            `# syqlorix run app.py`;
+            // Check if it's a full document or a fragment
+            const isFullDocument = htmlString.trim().toLowerCase().includes('<html');
 
-            return {
-                success: true,
-                code: finalCode
-            };
+            if (isFullDocument) {
+                const rootElement = doc.documentElement;
+                if (!rootElement) throw new Error("No <html> tag found.");
+                const syqlorixCode = processNodeForPython(rootElement, 0);
+                return { success: true, code: `from syqlorix import *\n\n# Main application object\ndoc = ${syqlorixCode}` };
+            } else {
+                // It's a fragment. Process only the children of the <body> tag.
+                const fragmentNodes = Array.from(doc.body.childNodes);
+                const syqlorixCode = fragmentNodes.map(node => processNodeForPython(node, 1)).filter(Boolean).join(',\n');
+                const finalCode = `from syqlorix import *\n\n` +
+                                `# This code was generated from an HTML fragment.\n` +
+                                `# You can add this to your Syqlorix routes.\n\n` +
+                                `my_component = div(\n${syqlorixCode}\n)`;
+                return { success: true, code: finalCode };
+            }
         } catch (e) {
             return { success: false, code: `# Conversion failed: ${e.message}` };
         }
     };
+
 
     const processNodeForPython = (node, indentLevel) => {
         const indent = '    '.repeat(indentLevel);
@@ -238,18 +239,25 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     
     // --- UI Event Handlers ---
-    const showStatus = (message, type = 'error') => { statusMessage.textContent = message; statusMessage.className = `status ${type}`; };
+    const showStatus = (message, type = 'error', duration = 0) => {
+        statusMessage.textContent = message;
+        statusMessage.className = `status ${type}`;
+        if (duration > 0) {
+            setTimeout(() => hideStatus(), duration);
+        }
+    };
     const hideStatus = () => { statusMessage.textContent = ''; statusMessage.className = 'status'; };
     const initialPreviewContent = `<body style="font-family: sans-serif; color: #555; display: grid; place-content: center; height: 100%; margin: 0;"><p>Live preview will appear here.</p></body>`;
 
     copyButton.addEventListener('click', () => {
         const code = syqlorixEditor.getValue();
-        if (!code || code.startsWith('# Conversion failed:')) { showStatus('Nothing to copy or conversion failed.', 'error'); return; }
+        if (!code || code.startsWith('# Conversion failed:')) { showStatus('Nothing to copy or conversion failed.', 'error', 3000); return; }
         navigator.clipboard.writeText(code).then(() => {
             copyButton.textContent = 'Copied!';
             copyButton.classList.add('copied');
+            showStatus('Code copied to clipboard!', 'success', 2000); // SUCCESS MESSAGE
             setTimeout(() => { copyButton.textContent = 'Copy'; copyButton.classList.remove('copied'); }, 2000);
-        }).catch(() => showStatus('Failed to copy to clipboard.', 'error'));
+        }).catch(() => showStatus('Failed to copy to clipboard.', 'error', 3000));
     });
 
     downloadButton.addEventListener('click', () => {
