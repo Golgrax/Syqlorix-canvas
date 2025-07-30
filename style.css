@@ -1,6 +1,6 @@
 :root {
     --bg-color: #1a1a2e;
-    --panel-bg: #1e1e1e; /* Monaco Editor default dark bg */
+    --panel-bg: #1e1e1e;
     --text-color: #e0e0e0;
     --primary-color: #00a8cc;
     --secondary-color: #3d3d5e;
@@ -12,136 +12,75 @@
     --font-code: 'Fira Code', monospace;
 }
 
-html, body {
-    height: 100%;
+* {
+    font-family: var(--font-main);
 }
 
 body {
-    font-family: var(--font-main);
     background-color: var(--bg-color);
     color: var(--text-color);
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden; /* Prevent body scroll */
-}
-
-header, footer {
-    text-align: center;
-    padding: 1.25rem;
-    flex-shrink: 0;
-    background-color: #161625;
-}
-
-header h1 {
-    color: var(--primary-color);
-    margin: 0 0 0.5rem 0;
-    font-size: 1.75rem;
-}
-
-header p, footer p {
-    color: var(--muted-color);
-    margin: 0;
-}
-
-footer {
-    font-size: 0.9em;
-}
-
-a {
-    color: var(--primary-color);
-    font-weight: bold;
-    text-decoration: none;
-}
-
-a:hover {
-    text-decoration: underline;
-}
-
-main {
-    flex-grow: 1;
-    display: grid;
-    grid-template-rows: minmax(0, 60fr) minmax(0, 40fr);
-    padding: 1.5rem;
-    gap: 1.5rem;
-    box-sizing: border-box;
-    overflow: hidden;
-}
-
-.top-panels {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1.5rem;
-    min-height: 0;
-    min-width: 0;
-}
-
-.code-panel, .preview-panel {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    min-width: 0;
-}
-
-.output-header, .preview-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 0.75rem;
-    flex-shrink: 0;
-}
-
-label {
-    font-weight: bold;
-    color: var(--muted-color);
-}
-
-.button-group {
-    display: flex;
-    gap: 0.5rem;
-}
-
-#copy-button, #download-button {
-    background-color: var(--secondary-color);
-    color: var(--text-color);
-    border: 1px solid var(--border-color);
-    padding: 0.5rem 1rem;
-    border-radius: 6px;
-    font-family: var(--font-main);
-    font-weight: bold;
-    cursor: pointer;
-    transition: background-color 0.2s, transform 0.1s;
-}
-
-#copy-button:hover, #download-button:hover {
-    background-color: #4a4a6a;
-}
-
-#copy-button:active, #download-button:active {
-    transform: scale(0.98);
-}
-
-#copy-button.copied {
-    background-color: var(--success-color);
-    color: #161625;
+    min-height: 100vh;
 }
 
 .editor-container {
-    height: 100%;
-    width: 100%;
+    height: 300px;
     border: 1px solid var(--border-color);
     border-radius: 8px;
     overflow: hidden;
+    background-color: var(--panel-bg);
 }
 
 .editor-container.readonly {
     background-color: #242440;
 }
 
+.preview-panel {
+    position: fixed;
+    top: 0;
+    right: -100%;
+    width: 100%;
+    height: 100%;
+    background-color: var(--bg-color);
+    transition: right 0.3s ease-in-out;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+}
+
+.preview-panel.active {
+    right: 0;
+}
+
+.preview-toggle {
+    position: fixed;
+    top: 50%;
+    right: 1rem;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 1001;
+    transition: background-color 0.2s;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.preview-toggle:hover {
+    background-color: #0090b3;
+}
+
+.preview-toggle.active {
+    right: calc(100% - 4rem);
+}
+
 #preview-frame {
     flex-grow: 1;
     width: 100%;
-    height: 100%;
     border: 1px solid var(--border-color);
     border-radius: 8px;
     background-color: white;
@@ -153,7 +92,6 @@ label {
     font-family: var(--font-code);
     font-size: 0.9em;
     display: none;
-    text-align: right;
 }
 
 .status.error {
@@ -161,23 +99,74 @@ label {
     display: block;
 }
 
-.example-loader {
-    margin-top: 1rem;
-    display: flex;
-    gap: 0.75rem;
-    justify-content: center;
-    align-items: center;
+.status.success {
+    color: var(--success-color);
+    display: block;
 }
-#example-select {
+
+.btn-primary {
+    background-color: var(--secondary-color);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.1s;
+}
+
+.btn-primary:hover {
+    background-color: #4a4a6a;
+}
+
+.btn-primary:active {
+    transform: scale(0.98);
+}
+
+.btn-primary.copied {
+    background-color: var(--success-color);
+    color: #161625;
+}
+
+.header-bg {
+    background-color: #161625;
+}
+
+.select-custom {
     background-color: var(--secondary-color);
     color: var(--text-color);
     border: 1px solid var(--border-color);
     border-radius: 6px;
     padding: 0.5rem;
-    font-family: var(--font-main);
 }
 
-.status.success {
-    color: var(--success-color);
-    display: block;
+@media (min-width: 768px) {
+    .editor-container {
+        height: 400px;
+    }
+    
+    .desktop-layout {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+    }
+    
+    .preview-panel {
+        position: relative;
+        right: 0;
+        width: auto;
+        height: auto;
+        background-color: transparent;
+        z-index: auto;
+    }
+    
+    .preview-toggle {
+        display: none;
+    }
+}
+
+@media (min-width: 1024px) {
+    .editor-container {
+        height: 500px;
+    }
 }
