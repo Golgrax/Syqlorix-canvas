@@ -276,9 +276,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     exampleSelect.addEventListener('change', (event) => {
-        const selectedExample = examples[event.target.value];
+        const selectedValue = event.target.value;
+        const selectedExample = examples[selectedValue];
         if (selectedExample && htmlEditor) {
             htmlEditor.setValue(selectedExample);
+            const selectedText = event.target.options[event.target.selectedIndex].text;
+            showStatus(`Loaded "${selectedText}" example!`, 'success', 2000); // SUCCESS MESSAGE
         }
     });
 
