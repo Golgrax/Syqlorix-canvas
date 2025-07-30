@@ -60,14 +60,17 @@ a:hover {
 
 main {
     flex-grow: 1;
+    display: flex;
     padding: 1.5rem;
+    gap: 1.5rem;
     box-sizing: border-box;
     overflow: hidden;
 }
 
-main {
+.main-grid {
+    flex-grow: 1;
     display: grid;
-    grid-template-rows: 60fr 40fr; /* 60% height for top, 40% for bottom */
+    grid-template-rows: 60fr 40fr;
     width: 100%;
     height: 100%;
     gap: 1.5rem;
