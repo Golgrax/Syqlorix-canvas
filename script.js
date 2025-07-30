@@ -1,3 +1,73 @@
+const examples = {
+    simple: `<!DOCTYPE html>
+<html>
+<head>
+    <title>Page Title</title>
+</head>
+<body>
+    <h1>This is a Heading</h1>
+    <p>This is a paragraph.</p>
+</body>
+</html>`,
+    advanced: `<!DOCTYPE html>
+<html>
+<head>
+    <title>Syqlorix - The Future is Now</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+body {
+    background-color: #1a1a2e;
+    color: #e0e0e0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+h1 {
+    color: #00a8cc;
+}
+.container {
+    max-width: 800px;
+    margin: auto;
+    padding: 2rem;
+}
+</style>
+</head>
+<body>
+    <div class="container">
+        <h1>Welcome to the Next Level</h1>
+        <p>This was generated from a full HTML document.</p>
+    </div>
+    <script>
+console.log('Syqlorix page loaded!');
+</script>
+</body>
+</html>`,
+    template: `<!DOCTYPE html>
+<html>
+<head>
+    <title>App Template</title>
+    <style>
+body {
+    background-color: #1a1a2e; color: #e0e0e0; font-family: sans-serif;
+    display: grid; place-content: center; height: 100vh; margin: 0;
+}
+.container { text-align: center; max-width: 600px; padding: 2rem; border-radius: 8px; background: #2a2a4a; }
+h1 { color: #00a8cc; }
+nav a { margin: 0 1rem; color: #72d5ff; }
+</style>
+</head>
+<body>
+    <div class="container">
+        <nav>
+            <a href="/">Home</a>
+            <a href="/about">About</a>
+        </nav>
+        <h1>Welcome to the App!</h1>
+        <p>This demonstrates a common page layout.</p>
+    </div>
+</body>
+</html>`
+};
+
 document.addEventListener('DOMContentLoaded', () => {
     // --- Element References ---
     const htmlInputContainer = document.getElementById('html-input-container');
@@ -5,7 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const copyButton = document.getElementById('copy-button');
     const downloadButton = document.getElementById('download-button');
     const statusMessage = document.getElementById('status-message');
-    const previewFrame = document.getElementById('preview-frame');
+    const exampleSelect = document.getElementById('example-select');
     
     let htmlEditor, syqlorixEditor;
 
@@ -116,7 +186,25 @@ document.addEventListener('DOMContentLoaded', () => {
         if (node.nodeType === Node.COMMENT_NODE) { const text = node.textContent.trim(); return `${indent}Comment("${text.replace(/"/g, '\\"')}")`; }
         if (node.nodeType === Node.ELEMENT_NODE) {
             let tagName = node.tagName.toLowerCase();
-            if (['script', 'style'].includes(tagName)) return null;
+
+            if (tagName === 'style' || tagName === 'script') {
+                const content = node.innerHTML.trim();
+                if (content) {
+                    // Format as a Python multiline string
+                    const pythonString = `"""\n${content}\n"""`;
+                    if (tagName === 'style') {
+                        return `${indent}style(${pythonString})`;
+                    }
+                    // For script, check for src attribute first
+                    const srcAttr = node.getAttribute('src');
+                    if (srcAttr) {
+                        return `${indent}script(src="${srcAttr}")`;
+                    }
+                    return `${indent}script(${pythonString})`;
+                }
+                return null; // Ignore empty style/script tags
+            }
+
 
             // !!!!!!!!!!! THE CRITICAL FIX !!!!!!!!!!!
             let pythonTagName = tagName;
@@ -166,4 +254,13 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
     });
+
+    exampleSelect.addEventListener('change', (event) => {
+        const selectedExample = examples[event.target.value];
+        if (selectedExample && htmlEditor) {
+            htmlEditor.setValue(selectedExample);
+        }
+    });
+
 });
+

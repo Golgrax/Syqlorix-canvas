@@ -60,14 +60,12 @@ a:hover {
 
 main {
     flex-grow: 1;
-    display: flex;
     padding: 1.5rem;
-    gap: 1.5rem;
     box-sizing: border-box;
     overflow: hidden;
 }
 
-.main-grid {
+main {
     display: grid;
     grid-template-rows: 60fr 40fr; /* 60% height for top, 40% for bottom */
     width: 100%;
@@ -164,4 +162,20 @@ label {
 .status.error {
     color: var(--error-color);
     display: block;
+}
+
+.example-loader {
+    margin-top: 1rem;
+    display: flex;
+    gap: 0.75rem;
+    justify-content: center;
+    align-items: center;
+}
+#example-select {
+    background-color: var(--secondary-color);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 0.5rem;
+    font-family: var(--font-main);
 }

@@ -15,25 +15,30 @@
     <header>
         <h1>HTML to Syqlorix Converter</h1>
         <p>A professional tool with a live preview and VS Code-style editor to convert any HTML document into a complete, runnable Syqlorix script.</p>
+        <div class="example-loader">
+            <label for="example-select">Load an Example:</label>
+            <select id="example-select">
+                <option value="simple">Simple Page</option>
+                <option value="advanced">Advanced Demo</option>
+                <option value="template">App Template</option>
+            </select>
+        </div>
     </header>
 
     <main class="main-grid">
         <div class="top-panels">
             <div class="code-panel">
                 <label for="html-input-container">HTML Input</label>
-                <!-- MODIFICATION: This is now a div to host the Monaco Editor -->
                 <div id="html-input-container" class="editor-container"></div>
             </div>
             <div class="code-panel">
                 <div class="output-header">
                     <label for="syqlorix-output-container">Syqlorix Output</label>
-                    <!-- MODIFICATION: Added a button group for Copy and Download -->
                     <div class="button-group">
                         <button id="copy-button">Copy</button>
                         <button id="download-button">Download .py</button>
                     </div>
                 </div>
-                <!-- MODIFICATION: This is now a div to host the Monaco Editor -->
                 <div id="syqlorix-output-container" class="editor-container readonly"></div>
             </div>
         </div>
