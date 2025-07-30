@@ -163,46 +163,86 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const convertHtmlToSyqlorix = (htmlString) => {
         try {
-            const isFullDocument = htmlString.trim().toLowerCase().includes('<html');
-
-            if (isFullDocument) {
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(htmlString, 'text/html');
-                const parseError = doc.querySelector('parsererror');
-                if (parseError) throw new Error("HTML parsing error. Check for unclosed tags.");
-                const rootElement = doc.documentElement;
-                if (!rootElement) throw new Error("No <html> tag found.");
-                
-                const syqlorixCode = processNodeForPython(rootElement, 1);
-                
-                const finalCode = `from syqlorix import *\n\n` +
-                                `# Main application object\n` +
-                                `doc = Syqlorix()\n\n` +
-                                `# Define a route for the root URL\n` +
-                                `@doc.route('/')\n` +
-                                `def main_page(request):\n` +
-                                `    return ${syqlorixCode}\n\n` +
-                                `# To run this script, save it as app.py and then execute in your terminal:\n` +
-                                `# syqlorix run app.py`;
-
-                return { success: true, code: finalCode };
-
-            } else {
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(`<body>${htmlString}</body>`, 'text/html');
-                const fragmentNodes = Array.from(doc.body.childNodes);
-                const syqlorixCode = fragmentNodes.map(node => processNodeForPython(node, 1)).filter(Boolean).join(',\n');
-                
-                const finalCode = `from syqlorix import *\n\n` +
-                                `# This code was generated from an HTML fragment.\n` +
-                                `# You can add this to your Syqlorix routes or components.\n\n` +
-                                `my_component = div(\n${syqlorixCode}\n)`;
-                return { success: true, code: finalCode };
+            if (!htmlString.trim().toLowerCase().startsWith('<!doctype html>')) {
+                throw new Error("Input must be a full HTML document for a runnable script.");
             }
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlString, 'text/html');
+            const parseError = doc.querySelector('parsererror');
+            if (parseError) throw new Error("HTML parsing error. Check for unclosed tags.");
+
+            const headNode = doc.querySelector('head');
+            const bodyNode = doc.querySelector('body');
+            if (!headNode || !bodyNode) throw new Error("A full HTML document requires a <head> and <body>.");
+
+            let cssContent = '';
+            const styleTags = headNode.querySelectorAll('style');
+            styleTags.forEach(style => {
+                cssContent += style.innerHTML.trim() + '\n\n';
+                style.remove();
+            });
+
+            let jsContent = '';
+            const scriptTags = Array.from(doc.querySelectorAll('script'));
+            const externalScripts = [];
+            scriptTags.forEach(script => {
+                if (script.src) {
+                    externalScripts.push(script);
+                } else {
+                    jsContent += script.innerHTML.trim() + '\n\n';
+                }
+                script.remove();
+            });
+
+            const headChildren = processNodeForPython(headNode, 1);
+            const bodyChildren = processNodeForPython(bodyNode, 1);
+            
+            let code = `from syqlorix import *\n\n`;
+            code += `# Main application object\ndoc = Syqlorix()\n\n`;
+
+            if (cssContent) {
+                code += `# --- Extracted CSS --- \n`;
+                code += `main_css = style("""\n${cssContent}""")\n\n`;
+            }
+
+            if (jsContent) {
+                code += `# --- Extracted JavaScript --- \n`;
+                code += `interactive_js = script("""\n${jsContent}""")\n\n`;
+            }
+
+            code += `# --- Define the main route --- \n`;
+            code += `@doc.route('/')\n`;
+            code += `def main_page(request):\n`;
+            code += `    return Syqlorix(\n`;
+            code += `        head(\n`;
+            if (cssContent) {
+                code += `            main_css,\n`;
+            }
+            code += `            ${headChildren}\n`;
+            code += `        ),\n`;
+            code += `        body(\n`;
+            code += `            ${bodyChildren},\n`;
+            
+            externalScripts.forEach(script => {
+                code += `            script(src="${script.src}"),\n`;
+            });
+            if (jsContent) {
+                code += `            interactive_js\n`;
+            }
+
+            code += `        )\n`;
+            code += `    )\n\n`;
+
+            code += `# To run this script, save it as app.py and execute:\n`;
+            code += `# syqlorix run app.py`;
+
+            return { success: true, code: code };
+
         } catch (e) {
             return { success: false, code: `# Conversion failed: ${e.message}` };
         }
     };
+
 
 
     const processNodeForPython = (node, indentLevel) => {
@@ -234,7 +274,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             let pythonTagName = tagName;
-            if (pythonTagName === 'html') pythonTagName = 'Syqlorix'; // CORRECT
+            if (['html', 'head', 'body'].includes(pythonTagName)) {
+                return Array.from(node.childNodes).map(child => processNodeForPython(child, indentLevel)).filter(Boolean).join(',\n');
+            }
             if (pythonTagName === 'input') pythonTagName = 'input_';
 
             const children = Array.from(node.childNodes).map(child => processNodeForPython(child, indentLevel + 1)).filter(Boolean);
