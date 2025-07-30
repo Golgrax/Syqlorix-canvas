@@ -1,373 +1,344 @@
-let htmlEditor, syqlorixEditor;
-let previewPanel, previewToggle;
-
-// Initialize Monaco Editor
-require.config({ paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.34.0/min/vs' } });
-
-require(['vs/editor/editor.main'], function() {
-    // HTML Editor
-    htmlEditor = monaco.editor.create(document.getElementById('html-input-container'), {
-        value: '<!DOCTYPE html>\n<html>\n<head>\n    <title>My Page</title>\n</head>\n<body>\n    <h1>Hello World!</h1>\n    <p>This is a simple HTML page.</p>\n</body>\n</html>',
-        language: 'html',
-        theme: 'vs-dark',
-        automaticLayout: true,
-        minimap: { enabled: false },
-        fontSize: 14,
-        lineNumbers: 'on',
-        scrollBeyondLastLine: false,
-        wordWrap: 'on'
-    });
-    
-    // Syqlorix Editor (readonly)
-    syqlorixEditor = monaco.editor.create(document.getElementById('syqlorix-output-container'), {
-        value: '',
-        language: 'python',
-        theme: 'vs-dark',
-        automaticLayout: true,
-        minimap: { enabled: false },
-        fontSize: 14,
-        lineNumbers: 'on',
-        scrollBeyondLastLine: false,
-        wordWrap: 'on',
-        readOnly: true
-    });
-    
-    // Convert HTML to Syqlorix on change
-    htmlEditor.onDidChangeModelContent(() => {
-        convertHtmlToSyqlorix();
-    });
-    
-    // Initial conversion
-    convertHtmlToSyqlorix();
-});
-
-// Initialize UI elements
-document.addEventListener('DOMContentLoaded', function() {
-    previewPanel = document.querySelector('.preview-panel');
-    previewToggle = document.querySelector('.preview-toggle');
-    
-    // Preview toggle functionality
-    previewToggle.addEventListener('click', function() {
-        togglePreview();
-    });
-    
-    // Close preview button
-    document.querySelector('.preview-close').addEventListener('click', function() {
-        closePreview();
-    });
-    
-    // Copy button functionality
-    document.getElementById('copy-button').addEventListener('click', function() {
-        copyToClipboard();
-    });
-    
-    // Download button functionality
-    document.getElementById('download-button').addEventListener('click', function() {
-        downloadPythonFile();
-    });
-    
-    // Example selector
-    document.getElementById('example-select').addEventListener('change', function() {
-        loadExample(this.value);
-    });
-});
-
-function togglePreview() {
-    previewPanel.classList.toggle('active');
-    previewToggle.classList.toggle('active');
-    
-    // Update icon
-    const icon = previewToggle.querySelector('i');
-    if (previewPanel.classList.contains('active')) {
-        icon.className = 'fas fa-arrow-left';
-    } else {
-        icon.className = 'fas fa-eye';
-    }
-}
-
-function closePreview() {
-    previewPanel.classList.remove('active');
-    previewToggle.classList.remove('active');
-    previewToggle.querySelector('i').className = 'fas fa-eye';
-}
-
-function convertHtmlToSyqlorix() {
-    if (!htmlEditor) return;
-    
-    const htmlCode = htmlEditor.getValue();
-    const syqlorixCode = generateSyqlorixCode(htmlCode);
-    
-    if (syqlorixEditor) {
-        syqlorixEditor.setValue(syqlorixCode);
-    }
-    
-    updatePreview(htmlCode);
-}
-
-function generateSyqlorixCode(html) {
-    // Basic HTML to Syqlorix conversion
-    const lines = [
-        'from syqlorix import Syqlorix',
-        '',
-        'app = Syqlorix()',
-        '',
-        '@app.route("/")',
-        'def index():',
-        '    return """',
-        ...html.split('\n').map(line => '    ' + line),
-        '    """',
-        '',
-        'if __name__ == "__main__":',
-        '    app.run(debug=True)'
-    ];
-    
-    return lines.join('\n');
-}
-
-function updatePreview(htmlCode) {
-    const previewFrame = document.getElementById('preview-frame');
-    const statusMessage = document.getElementById('status-message');
-    
-    try {
-        const blob = new Blob([htmlCode], { type: 'text/html' });
-        const url = URL.createObjectURL(blob);
-        previewFrame.src = url;
-        
-        statusMessage.textContent = 'Preview updated successfully';
-        statusMessage.className = 'status success';
-        
-        // Clear status after 2 seconds
-        setTimeout(() => {
-            statusMessage.style.display = 'none';
-        }, 2000);
-    } catch (error) {
-        statusMessage.textContent = 'Error updating preview: ' + error.message;
-        statusMessage.className = 'status error';
-    }
-}
-
-function copyToClipboard() {
-    if (!syqlorixEditor) return;
-    
-    const code = syqlorixEditor.getValue();
-    navigator.clipboard.writeText(code).then(() => {
-        const button = document.getElementById('copy-button');
-        const originalText = button.innerHTML;
-        button.innerHTML = '<i class="fas fa-check mr-1"></i>Copied!';
-        button.classList.add('copied');
-        
-        setTimeout(() => {
-            button.innerHTML = originalText;
-            button.classList.remove('copied');
-        }, 2000);
-    }).catch(err => {
-        console.error('Failed to copy: ', err);
-    });
-}
-
-function downloadPythonFile() {
-    if (!syqlorixEditor) return;
-    
-    const code = syqlorixEditor.getValue();
-    const blob = new Blob([code], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'syqlorix_app.py';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-}
-
-function loadExample(type) {
-    let exampleHtml = '';
-    
-    switch(type) {
-        case 'simple':
-            exampleHtml = `<!DOCTYPE html>
+const examples = {
+    simple: `<!DOCTYPE html>
 <html>
 <head>
-<title>Simple Page</title>
-<style>
-body { font-family: Arial, sans-serif; margin: 40px; }
-h1 { color: #333; }
-p { line-height: 1.6; }
-</style>
+    <title>Page Title</title>
 </head>
 <body>
-<h1>Welcome to My Simple Page</h1>
-<p>This is a simple HTML page with basic styling.</p>
-<button onclick="alert('Hello from Syqlorix!')">Click Me</button>
+    <h1>This is a Heading</h1>
+    <p>This is a paragraph.</p>
 </body>
-</html>`;
-            break;
-            
-        case 'advanced':
-            exampleHtml = `<!DOCTYPE html>
+</html>`,
+    advanced: `<!DOCTYPE html>
 <html>
 <head>
-<title>Advanced Demo</title>
-<style>
-body { 
+    <title>Syqlorix - The Future is Now</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+body {
+    background-color: #1a1a2e;
+    color: #e0e0e0;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    margin: 0;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+}
+h1 {
+    color: #00a8cc;
 }
 .container {
-    text-align: center;
+    max-width: 800px;
+    margin: auto;
     padding: 2rem;
-    background: rgba(255,255,255,0.1);
-    border-radius: 20px;
-    backdrop-filter: blur(10px);
-    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
 }
-button {
-    background: #ff6b6b;
-    color: white;
-    border: none;
-    padding: 15px 30px;
-    border-radius: 25px;
-    font-size: 1.1rem;
-    cursor: pointer;
-    transition: transform 0.2s;
-}
-button:hover { transform: scale(1.05); }
 </style>
 </head>
 <body>
-<div class="container">
-<h1>Advanced Syqlorix Demo</h1>
-<p>This example showcases modern CSS features including gradients, backdrop filters, and animations.</p>
-<button onclick="this.innerHTML = 'Clicked!'">Interactive Button</button>
-</div>
+    <div class="container">
+        <h1>Welcome to the Next Level</h1>
+        <p>This was generated from a full HTML document.</p>
+    </div>
+    <script>
+console.log('Syqlorix page loaded!');
+</script>
 </body>
-</html>`;
-            break;
-            
-        case 'template':
-            exampleHtml = `<!DOCTYPE html>
+</html>`,
+    template: `<!DOCTYPE html>
 <html>
 <head>
-<title>App Template</title>
-<style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
-.navbar {
-    background: #2c3e50;
-    color: white;
-    padding: 1rem 2rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    <title>App Template</title>
+    <style>
+body {
+    background-color: #1a1a2e; color: #e0e0e0; font-family: sans-serif;
+    display: grid; place-content: center; height: 100vh; margin: 0;
 }
-.content {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 2rem;
-}
-.card {
-    background: #f8f9fa;
-    padding: 2rem;
-    border-radius: 10px;
-    margin-bottom: 2rem;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-}
-.btn {
-    background: #3498db;
-    color: white;
-    border: none;
-    padding: 12px 24px;
-    border-radius: 5px;
-    cursor: pointer;
-    margin: 0.5rem;
-}
-.btn:hover { background: #2980b9; }
-.footer {
-    background: #34495e;
-    color: white;
-    text-align: center;
-    padding: 2rem;
-    margin-top: 3rem;
-}
+.container { text-align: center; max-width: 600px; padding: 2rem; border-radius: 8px; background: #2a2a4a; }
+h1 { color: #00a8cc; }
+nav a { margin: 0 1rem; color: #72d5ff; }
 </style>
 </head>
 <body>
-<nav class="navbar">
-<h1>My Syqlorix App</h1>
-<div>
-    <button class="btn">Home</button>
-    <button class="btn">About</button>
-    <button class="btn">Contact</button>
-</div>
-</nav>
-
-<div class="content">
-<div class="card">
-    <h2>Welcome to Your App</h2>
-    <p>This is a complete app template that you can use as a starting point for your Syqlorix applications.</p>
-    <button class="btn">Get Started</button>
-</div>
-
-<div class="card">
-    <h2>Features</h2>
-    <ul>
-        <li>Responsive design</li>
-        <li>Modern UI components</li>
-        <li>Easy to customize</li>
-        <li>Ready for Syqlorix</li>
-    </ul>
-</div>
-</div>
-
-<footer class="footer">
-<p>&copy; 2025 My Syqlorix App. Built with ❤️ using Syqlorix.</p>
-</footer>
+    <div class="container">
+        <nav>
+            <a href="/">Home</a>
+            <a href="/about">About</a>
+        </nav>
+        <h1>Welcome to the App!</h1>
+        <p>This demonstrates a common page layout.</p>
+    </div>
 </body>
-</html>`;
-            break;
-    }
-    
-    if (htmlEditor && exampleHtml) {
-        htmlEditor.setValue(exampleHtml);
-    }
-}
+</html>`
+};
 
-// Handle swipe gestures for mobile
-let startX, startY, currentX, currentY;
+document.addEventListener('DOMContentLoaded', () => {
+    // --- Element References ---
+    const htmlInputContainer = document.getElementById('html-input-container');
+    const syqlorixOutputContainer = document.getElementById('syqlorix-output-container');
+    const copyButton = document.getElementById('copy-button');
+    const downloadButton = document.getElementById('download-button');
+    const statusMessage = document.getElementById('status-message');
+    const exampleSelect = document.getElementById('example-select');
+    const previewFrame = document.getElementById('preview-frame');
 
-document.addEventListener('touchstart', function(e) {
-    startX = e.touches[0].clientX;
-    startY = e.touches[0].clientY;
-});
+    let htmlEditor, syqlorixEditor;
 
-document.addEventListener('touchmove', function(e) {
-    if (!startX || !startY) return;
-    
-    currentX = e.touches[0].clientX;
-    currentY = e.touches[0].clientY;
-    
-    const diffX = startX - currentX;
-    const diffY = startY - currentY;
-    
-    if (Math.abs(diffX) > Math.abs(diffY)) {
-        if (diffX > 50 && !previewPanel.classList.contains('active')) {
-            // Swipe left to show preview
-            togglePreview();
-        } else if (diffX < -50 && previewPanel.classList.contains('active')) {
-            // Swipe right to hide preview
-            closePreview();
+    // --- Monaco Editor Initialization ---
+    require.config({ paths: { 'vs': 'https://cdn.jsdelivr.net/npm/monaco-editor@0.34.0/min/vs' }});
+    require(['vs/editor/editor.main'], () => {
+        htmlEditor = monaco.editor.create(htmlInputContainer, {
+            value: '<!DOCTYPE html>\n<html>\n<head>\n    <title>My Page</title>\n</head>\n<body>\n    <h1>Hello, Syqlorix!</h1>\n</body>\n</html>',
+            language: 'html',
+            theme: 'vs-dark',
+            automaticLayout: true,
+            fontFamily: 'Fira Code',
+            wordWrap: 'on',
+            minimap: { enabled: false }
+        });
+
+        syqlorixEditor = monaco.editor.create(syqlorixOutputContainer, {
+            value: '',
+            language: 'python',
+            theme: 'vs-dark',
+            readOnly: true,
+            automaticLayout: true,
+            fontFamily: 'Fira Code',
+            wordWrap: 'on',
+            minimap: { enabled: false }
+        });
+
+        // Trigger initial conversion
+        processAll(htmlEditor.getValue(), previewFrame);
+
+        // Listen for changes
+        htmlEditor.onDidChangeModelContent(() => {
+            processAll(htmlEditor.getValue(), previewFrame);
+        });
+    });
+
+    // --- Main Processing Function ---
+    const processAll = (html, previewFrame) => {
+        hideStatus();
+        if (html.trim() === '') {
+            syqlorixEditor.setValue('');
+            previewFrame.srcdoc = initialPreviewContent;
+            previewFrame.srcdoc = previewHtml;
+            return;
         }
-    }
+
+        const result = convertHtmlToSyqlorix(html);
+        const previewHtml = renderPreviewFromHtml(html);
+
+        syqlorixEditor.setValue(result.code);
+        previewFrame.srcdoc = previewHtml;
+    };
+
+    // --- Syqlorix HTML Renderer Simulation ---
+    const renderPreviewFromHtml = (htmlString) => {
+        try {
+            if (!htmlString.trim().toLowerCase().startsWith('<!doctype html>')) throw new Error("Input must be a full HTML document.");
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlString, 'text/html');
+            const parseError = doc.querySelector('parsererror');
+            if (parseError) throw new Error("HTML has errors. Preview is paused.");
+            return `<!DOCTYPE html>\n${renderNodeAsHtml(doc.documentElement, 0)}`;
+        } catch (e) {
+            showStatus(e.message, 'error');
+            return `<body style="font-family: sans-serif; color: #c00; display: grid; place-content: center; height: 100%; margin: 0;"><p>${e.message}</p></body>`;
+        }
+    };
+    const renderNodeAsHtml = (node, indentLevel) => {
+        const indent = "  ".repeat(indentLevel);
+        const selfClosingTags = new Set(["area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"]);
+        if (node.nodeType === Node.TEXT_NODE) { const text = node.textContent.trim(); return text ? `${indent}${text}\n` : ''; }
+        if (node.nodeType === Node.COMMENT_NODE) { const text = node.textContent.trim(); return `${indent}<!-- ${text} -->\n`; }
+        if (node.nodeType === Node.ELEMENT_NODE) {
+            const tagName = node.tagName.toLowerCase();
+            const attributes = Array.from(node.attributes).map(attr => ` ${attr.name}="${attr.value}"`).join('');
+            if (selfClosingTags.has(tagName)) { return `${indent}<${tagName}${attributes}>\n`; }
+            let html = `${indent}<${tagName}${attributes}>\n`;
+            Array.from(node.childNodes).forEach(child => { html += renderNodeAsHtml(child, indentLevel + 1); });
+            html += `${indent}</${tagName}>\n`;
+            return html;
+        }
+        return '';
+    };
+
+    const convertHtmlToSyqlorix = (htmlString) => {
+        try {
+            if (!htmlString.trim().toLowerCase().startsWith('<!doctype html>')) {
+                throw new Error("Input must be a full HTML document for a runnable script.");
+            }
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlString, 'text/html');
+            const parseError = doc.querySelector('parsererror');
+            if (parseError) throw new Error("HTML parsing error. Check for unclosed tags.");
+
+            const headNode = doc.querySelector('head');
+            const bodyNode = doc.querySelector('body');
+            if (!headNode || !bodyNode) throw new Error("A full HTML document requires a <head> and <body>.");
+
+            let cssContent = '';
+            const styleTags = headNode.querySelectorAll('style');
+            styleTags.forEach(style => {
+                cssContent += style.innerHTML.trim() + '\n\n';
+                style.remove();
+            });
+
+            let jsContent = '';
+            const scriptTags = Array.from(doc.querySelectorAll('script'));
+            const externalScripts = [];
+            scriptTags.forEach(script => {
+                if (script.src) {
+                    externalScripts.push(script);
+                } else {
+                    jsContent += script.innerHTML.trim() + '\n\n';
+                }
+                script.remove();
+            });
+
+            const headChildren = processNodeForPython(headNode, 1);
+            const bodyChildren = processNodeForPython(bodyNode, 1);
+            
+            let code = `from syqlorix import *\n\n`;
+            code += `# Main application object\ndoc = Syqlorix()\n\n`;
+
+            if (cssContent) {
+                code += `# --- Extracted CSS --- \n`;
+                code += `main_css = style("""\n${cssContent}""")\n\n`;
+            }
+
+            if (jsContent) {
+                code += `# --- Extracted JavaScript --- \n`;
+                code += `interactive_js = script("""\n${jsContent}""")\n\n`;
+            }
+
+            code += `# --- Define the main route --- \n`;
+            code += `@doc.route('/')\n`;
+            code += `def main_page(request):\n`;
+            code += `    return Syqlorix(\n`;
+            code += `        head(\n`;
+            if (cssContent) {
+                code += `            main_css,\n`;
+            }
+            code += `            ${headChildren}\n`;
+            code += `        ),\n`;
+            code += `        body(\n`;
+            code += `            ${bodyChildren},\n`;
+            
+            externalScripts.forEach(script => {
+                code += `            script(src="${script.src}"),\n`;
+            });
+            if (jsContent) {
+                code += `            interactive_js\n`;
+            }
+
+            code += `        )\n`;
+            code += `    )\n\n`;
+
+            code += `# To run this script, save it as app.py and execute:\n`;
+            code += `# syqlorix run app.py`;
+
+            return { success: true, code: code };
+
+        } catch (e) {
+            return { success: false, code: `# Conversion failed: ${e.message}` };
+        }
+    };
+
+
+
+    const processNodeForPython = (node, indentLevel) => {
+        const indent = '    '.repeat(indentLevel);
+        if (node.nodeType === Node.TEXT_NODE) { const text = node.textContent.trim(); return text ? `${indent}"${text.replace(/"/g, '\\"')}"` : null; }
+        if (node.nodeType === Node.COMMENT_NODE) { const text = node.textContent.trim(); return `${indent}Comment("${text.replace(/"/g, '\\"')}")`; }
+        if (node.nodeType === Node.ELEMENT_NODE) {
+            let tagName = node.tagName.toLowerCase();
+
+            if (tagName === 'style' || tagName === 'script') {
+                // Prioritize the 'src' attribute for scripts, as it's the most common case for external libraries
+                const srcAttr = node.getAttribute('src');
+                if (tagName === 'script' && srcAttr) {
+                    return `${indent}script(src="${srcAttr}")`;
+                }
+                
+                // If no src, or if it's a style tag, then check for inline content
+                const content = node.innerHTML.trim();
+                if (content) {
+                    const pythonString = `"""\n${content}\n"""`;
+                    if (tagName === 'style') {
+                        return `${indent}style(${pythonString})`;
+                    }
+                    return `${indent}script(${pythonString})`;
+                }
+                
+                // Ignore empty script/style tags without a src
+                return null;
+            }
+
+            let pythonTagName = tagName;
+            if (['html', 'head', 'body'].includes(pythonTagName)) {
+                return Array.from(node.childNodes).map(child => processNodeForPython(child, indentLevel)).filter(Boolean).join(',\n');
+            }
+            if (pythonTagName === 'input') pythonTagName = 'input_';
+
+            const children = Array.from(node.childNodes).map(child => processNodeForPython(child, indentLevel + 1)).filter(Boolean);
+            const attributes = Array.from(node.attributes).map(attr => {
+                const attrName = attr.name === 'class' ? 'class_' : attr.name.replace(/-/g, '_');
+                if (attr.value === '') return `${attrName}=True`;
+                return `${attrName}="${attr.value.replace(/"/g, '\\"')}"`;
+            });
+            let args = [];
+            if (children.length > 0) args.push(`\n${children.join(',\n')}\n${indent}`);
+            if (attributes.length > 0) { if (children.length > 0) args.push(', '); args.push(attributes.join(', ')); }
+            return `${indent}${pythonTagName}(${args.join('')})`;
+        }
+        return null;
+    };
+    
+    // --- UI Event Handlers ---
+    const showStatus = (message, type = 'error', duration = 0) => {
+        statusMessage.textContent = message;
+        statusMessage.className = `status ${type}`;
+        if (duration > 0) {
+            setTimeout(() => hideStatus(), duration);
+        }
+    };
+    const hideStatus = () => { statusMessage.textContent = ''; statusMessage.className = 'status'; };
+    const initialPreviewContent = `<body style="font-family: sans-serif; color: #555; display: grid; place-content: center; height: 100%; margin: 0;"><p>Live preview will appear here.</p></body>`;
+
+    copyButton.addEventListener('click', () => {
+        const code = syqlorixEditor.getValue();
+        if (!code || code.startsWith('# Conversion failed:')) { showStatus('Nothing to copy or conversion failed.', 'error', 3000); return; }
+        navigator.clipboard.writeText(code).then(() => {
+            copyButton.textContent = 'Copied!';
+            copyButton.classList.add('copied');
+            showStatus('Code copied to clipboard!', 'success', 2000); // SUCCESS MESSAGE
+            setTimeout(() => { copyButton.textContent = 'Copy'; copyButton.classList.remove('copied'); }, 2000);
+        }).catch(() => showStatus('Failed to copy to clipboard.', 'error', 3000));
+    });
+
+    downloadButton.addEventListener('click', () => {
+        const code = syqlorixEditor.getValue();
+        if (!code || code.startsWith('# Conversion failed:')) { showStatus('Nothing to download or conversion failed.', 'error'); return; }
+        
+        const blob = new Blob([code], { type: 'text/python' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'app.py';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    });
+
+    exampleSelect.addEventListener('change', (event) => {
+        const selectedValue = event.target.value;
+        const selectedExample = examples[selectedValue];
+        if (selectedExample && htmlEditor) {
+            htmlEditor.setValue(selectedExample);
+            const selectedText = event.target.options[event.target.selectedIndex].text;
+            showStatus(`Loaded "${selectedText}" example!`, 'success', 2000); // SUCCESS MESSAGE
+        }
+    });
+
 });
 
-document.addEventListener('touchend', function() {
-    startX = null;
-    startY = null;
-});
