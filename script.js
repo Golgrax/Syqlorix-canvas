@@ -161,29 +161,41 @@ document.addEventListener('DOMContentLoaded', () => {
         return '';
     };
 
-
     const convertHtmlToSyqlorix = (htmlString) => {
         try {
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(htmlString, 'text/html');
-            const parseError = doc.querySelector('parsererror');
-            if (parseError) throw new Error("HTML parsing error. Check for unclosed tags.");
-            
-            // Check if it's a full document or a fragment
             const isFullDocument = htmlString.trim().toLowerCase().includes('<html');
 
             if (isFullDocument) {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(htmlString, 'text/html');
+                const parseError = doc.querySelector('parsererror');
+                if (parseError) throw new Error("HTML parsing error. Check for unclosed tags.");
                 const rootElement = doc.documentElement;
                 if (!rootElement) throw new Error("No <html> tag found.");
-                const syqlorixCode = processNodeForPython(rootElement, 0);
-                return { success: true, code: `from syqlorix import *\n\n# Main application object\ndoc = ${syqlorixCode}` };
+                
+                const syqlorixCode = processNodeForPython(rootElement, 1);
+                
+                const finalCode = `from syqlorix import *\n\n` +
+                                `# Main application object\n` +
+                                `doc = Syqlorix()\n\n` +
+                                `# Define a route for the root URL\n` +
+                                `@doc.route('/')\n` +
+                                `def main_page(request):\n` +
+                                `    return ${syqlorixCode}\n\n` +
+                                `# To run this script, save it as app.py and then execute in your terminal:\n` +
+                                `# syqlorix run app.py`;
+
+                return { success: true, code: finalCode };
+
             } else {
-                // It's a fragment. Process only the children of the <body> tag.
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(`<body>${htmlString}</body>`, 'text/html');
                 const fragmentNodes = Array.from(doc.body.childNodes);
                 const syqlorixCode = fragmentNodes.map(node => processNodeForPython(node, 1)).filter(Boolean).join(',\n');
+                
                 const finalCode = `from syqlorix import *\n\n` +
                                 `# This code was generated from an HTML fragment.\n` +
-                                `# You can add this to your Syqlorix routes.\n\n` +
+                                `# You can add this to your Syqlorix routes or components.\n\n` +
                                 `my_component = div(\n${syqlorixCode}\n)`;
                 return { success: true, code: finalCode };
             }
