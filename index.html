@@ -21,18 +21,19 @@
         <div class="top-panels">
             <div class="code-panel">
                 <label for="html-input-container">HTML Input</label>
-                <!-- Monaco Editor will be placed here -->
+                <!-- MODIFICATION: This is now a div to host the Monaco Editor -->
                 <div id="html-input-container" class="editor-container"></div>
             </div>
             <div class="code-panel">
                 <div class="output-header">
                     <label for="syqlorix-output-container">Syqlorix Output</label>
+                    <!-- MODIFICATION: Added a button group for Copy and Download -->
                     <div class="button-group">
                         <button id="copy-button">Copy</button>
                         <button id="download-button">Download .py</button>
                     </div>
                 </div>
-                <!-- Monaco Editor for output will be placed here -->
+                <!-- MODIFICATION: This is now a div to host the Monaco Editor -->
                 <div id="syqlorix-output-container" class="editor-container readonly"></div>
             </div>
         </div>
@@ -50,7 +51,6 @@
         <p>Built for the <a href="https://github.com/Syqlorix/Syqlorix" target="_blank" rel="noopener noreferrer">Syqlorix</a> project. This tool runs entirely in your browser.</p>
     </footer>
 
-    <!-- Monaco Editor Loader -->
     <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.34.0/min/vs/loader.js"></script>
     <script src="script.js"></script>
 </body>

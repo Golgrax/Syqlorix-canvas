@@ -29,7 +29,8 @@ document.addEventListener('DOMContentLoaded', () => {
             readOnly: true,
             automaticLayout: true,
             fontFamily: 'Fira Code',
-            wordWrap: 'on'
+            wordWrap: 'on',
+            minimap: { enabled: false }
         });
 
         // Trigger initial conversion
@@ -71,7 +72,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return `<body style="font-family: sans-serif; color: #c00; display: grid; place-content: center; height: 100%; margin: 0;"><p>${e.message}</p></body>`;
         }
     };
-    const renderNodeAsHtml = (node, indentLevel) => { /* ... (This function remains the same as the previous version) ... */
+    const renderNodeAsHtml = (node, indentLevel) => {
         const indent = "  ".repeat(indentLevel);
         const selfClosingTags = new Set(["area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"]);
         if (node.nodeType === Node.TEXT_NODE) { const text = node.textContent.trim(); return text ? `${indent}${text}\n` : ''; }
@@ -87,7 +88,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         return '';
     };
-
 
     // --- HTML to Syqlorix Python Code Converter (CORRECTED) ---
     const convertHtmlToSyqlorix = (htmlString) => {
@@ -142,7 +142,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const hideStatus = () => { statusMessage.textContent = ''; statusMessage.className = 'status'; };
     const initialPreviewContent = `<body style="font-family: sans-serif; color: #555; display: grid; place-content: center; height: 100%; margin: 0;"><p>Live preview will appear here.</p></body>`;
 
-    copyButton.addEventListener('click', () => { /* ... same as before ... */
+    copyButton.addEventListener('click', () => {
         const code = syqlorixEditor.getValue();
         if (!code || code.startsWith('# Conversion failed:')) { showStatus('Nothing to copy or conversion failed.', 'error'); return; }
         navigator.clipboard.writeText(code).then(() => {
