@@ -60,26 +60,20 @@ a:hover {
 
 main {
     flex-grow: 1;
-    display: flex;
+    display: grid;
+    grid-template-rows: minmax(0, 60fr) minmax(0, 40fr);
     padding: 1.5rem;
     gap: 1.5rem;
     box-sizing: border-box;
     overflow: hidden;
 }
 
-.main-grid {
-    flex-grow: 1;
-    display: grid;
-    grid-template-rows: 60fr 40fr;
-    width: 100%;
-    height: 100%;
-    gap: 1.5rem;
-}
-
 .top-panels {
-    display: flex;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: 1.5rem;
     min-height: 0;
+    min-width: 0;
 }
 
 .code-panel, .preview-panel {
