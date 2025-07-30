@@ -1,4 +1,3 @@
-// --- Example HTML Strings (Your perfected examples) ---
 const examples = {
     simple: `<!DOCTYPE html>
 <html>
@@ -63,11 +62,9 @@ nav a { margin: 0 1rem; color: #72d5ff; }
 </html>`
 };
 
-// --- Global Variables ---
 let htmlEditor, syqlorixEditor;
 const initialPreviewContent = `<body style="font-family: sans-serif; color: #555; display: grid; place-content: center; height: 100%; margin: 0;"><p>Live preview will appear here.</p></body>`;
 
-// --- Monaco Editor Initialization ---
 require.config({ paths: { 'vs': 'https://cdn.jsdelivr.net/npm/monaco-editor@0.34.0/min/vs' }});
 require(['vs/editor/editor.main'], () => {
     htmlEditor = monaco.editor.create(document.getElementById('html-input-container'), {
@@ -94,7 +91,6 @@ require(['vs/editor/editor.main'], () => {
     htmlEditor.onDidChangeModelContent(() => processAll(htmlEditor.getValue()));
 });
 
-// --- Main Event Listener for UI ---
 document.addEventListener('DOMContentLoaded', () => {
     const previewPanel = document.querySelector('.preview-panel');
     const previewToggle = document.querySelector('.preview-toggle');
@@ -150,7 +146,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// --- Main Processing Function ---
 const processAll = (html) => {
     hideStatus();
     if (!html || html.trim() === '') {
@@ -164,12 +159,10 @@ const processAll = (html) => {
     document.getElementById('preview-frame').srcdoc = previewHtml;
 };
 
-// --- Syqlorix HTML Renderer Simulation (Your Perfected Version) ---
 const renderPreviewFromHtml = (htmlString) => {
     try {
         const isFullDocument = htmlString.trim().toLowerCase().includes('<html');
-        if (!isFullDocument) return `<body>${htmlString}</body>`; // Handle fragments for preview
-        
+        if (!isFullDocument) return `<body>${htmlString}</body>`;
         const parser = new DOMParser();
         const doc = parser.parseFromString(htmlString, 'text/html');
         const parseError = doc.querySelector('parsererror');
@@ -198,7 +191,6 @@ const renderNodeAsHtml = (node, indentLevel) => {
     return '';
 };
 
-// --- HTML to Syqlorix Python Code Converter (Your Perfected Version) ---
 const convertHtmlToSyqlorix = (htmlString) => {
     try {
         const isFullDocument = htmlString.trim().toLowerCase().includes('<html');
@@ -220,10 +212,10 @@ const convertHtmlToSyqlorix = (htmlString) => {
             const headChildren = processNodeForPython(headNode, 1);
             const bodyChildren = processNodeForPython(bodyNode, 1);
             let code = `from syqlorix import *\n\n`;
-            code += `# Main application object\ndoc = Syqlorix()\n\n`;
-            if (cssContent.trim()) { code += `# --- Extracted CSS --- \nmain_css = style("""\n${cssContent.trim()}\n""")\n\n`; }
-            if (jsContent.trim()) { code += `# --- Extracted JavaScript --- \ninteractive_js = script("""\n${jsContent.trim()}\n""")\n\n`; }
-            code += `# --- Define the main route --- \n@doc.route('/')\ndef main_page(request):\n`;
+            code += `doc = Syqlorix()\n\n`;
+            if (cssContent.trim()) { code += `main_css = style("""\n${cssContent.trim()}\n""")\n\n`; }
+            if (jsContent.trim()) { code += `interactive_js = script("""\n${jsContent.trim()}\n""")\n\n`; }
+            code += `@doc.route('/')\ndef main_page(request):\n`;
             code += `    return Syqlorix(\n        head(\n`;
             if (cssContent.trim()) { code += `            main_css,\n`; }
             code += `            ${headChildren}\n        ),\n        body(\n            ${bodyChildren},\n`;
@@ -236,7 +228,7 @@ const convertHtmlToSyqlorix = (htmlString) => {
             const doc = parser.parseFromString(`<body>${htmlString}</body>`, 'text/html');
             const fragmentNodes = Array.from(doc.body.childNodes);
             const syqlorixCode = fragmentNodes.map(node => processNodeForPython(node, 1)).filter(Boolean).join(',\n');
-            const finalCode = `from syqlorix import *\n\n# This code was generated from an HTML fragment.\n# You can add this to your Syqlorix routes or components.\n\nmy_component = div(\n${syqlorixCode}\n)`;
+            const finalCode = `from syqlorix import *\n\nmy_component = div(\n${syqlorixCode}\n)`;
             return { success: true, code: finalCode };
         }
     } catch (e) {
@@ -273,16 +265,11 @@ const processNodeForPython = (node, indentLevel) => {
     return null;
 };
     
-// --- UI Utility Functions ---
 const showStatus = (message, type = 'error', duration = 0) => {
     const statusMessage = document.getElementById('status-message');
-    const exampleSelect = document.getElementById('example-select');
-    const previewFrame = document.getElementById('preview-frame');
     statusMessage.textContent = message;
     statusMessage.className = `status ${type}`;
-    if (duration > 0) {
-        setTimeout(() => hideStatus(), duration);
-    }
+    if (duration > 0) setTimeout(() => hideStatus(), duration);
 };
 
 const hideStatus = () => {
