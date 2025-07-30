@@ -76,7 +76,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const downloadButton = document.getElementById('download-button');
     const statusMessage = document.getElementById('status-message');
     const exampleSelect = document.getElementById('example-select');
-    
+    const previewFrame = document.getElementById('preview-frame');
+
     let htmlEditor, syqlorixEditor;
 
     // --- Monaco Editor Initialization ---
@@ -104,20 +105,21 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         // Trigger initial conversion
-        processAll(htmlEditor.getValue());
+        processAll(htmlEditor.getValue(), previewFrame);
 
         // Listen for changes
         htmlEditor.onDidChangeModelContent(() => {
-            processAll(htmlEditor.getValue());
+            processAll(htmlEditor.getValue(), previewFrame);
         });
     });
 
     // --- Main Processing Function ---
-    const processAll = (html) => {
+    const processAll = (html, previewFrame) => {
         hideStatus();
         if (html.trim() === '') {
             syqlorixEditor.setValue('');
             previewFrame.srcdoc = initialPreviewContent;
+            previewFrame.srcdoc = previewHtml;
             return;
         }
 
