@@ -213,25 +213,26 @@ document.addEventListener('DOMContentLoaded', () => {
             let tagName = node.tagName.toLowerCase();
 
             if (tagName === 'style' || tagName === 'script') {
+                // Prioritize the 'src' attribute for scripts, as it's the most common case for external libraries
+                const srcAttr = node.getAttribute('src');
+                if (tagName === 'script' && srcAttr) {
+                    return `${indent}script(src="${srcAttr}")`;
+                }
+                
+                // If no src, or if it's a style tag, then check for inline content
                 const content = node.innerHTML.trim();
                 if (content) {
-                    // Format as a Python multiline string
                     const pythonString = `"""\n${content}\n"""`;
                     if (tagName === 'style') {
                         return `${indent}style(${pythonString})`;
                     }
-                    // For script, check for src attribute first
-                    const srcAttr = node.getAttribute('src');
-                    if (srcAttr) {
-                        return `${indent}script(src="${srcAttr}")`;
-                    }
                     return `${indent}script(${pythonString})`;
                 }
-                return null; // Ignore empty style/script tags
+                
+                // Ignore empty script/style tags without a src
+                return null;
             }
 
-
-            // !!!!!!!!!!! THE CRITICAL FIX !!!!!!!!!!!
             let pythonTagName = tagName;
             if (pythonTagName === 'html') pythonTagName = 'Syqlorix'; // CORRECT
             if (pythonTagName === 'input') pythonTagName = 'input_';
