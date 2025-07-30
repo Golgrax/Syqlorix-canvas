@@ -1,8 +1,9 @@
 :root {
     --bg-color: #1a1a2e;
-    --panel-bg: #2a2a4a;
+    --panel-bg: #1e1e1e; /* Monaco Editor default dark bg */
     --text-color: #e0e0e0;
     --primary-color: #00a8cc;
+    --secondary-color: #3d3d5e;
     --success-color: #4ec9b0;
     --muted-color: #aaa;
     --error-color: #ff5370;
@@ -10,7 +11,7 @@
     --font-main: 'Inter', sans-serif;
     --font-code: 'Fira Code', monospace;
 }
-
+html, body { height: 100%; }
 body {
     font-family: var(--font-main);
     background-color: var(--bg-color);
@@ -18,51 +19,25 @@ body {
     margin: 0;
     display: flex;
     flex-direction: column;
-    height: 100vh;
     overflow: hidden;
 }
-
-header, footer {
-    text-align: center;
-    padding: 1.25rem;
-    flex-shrink: 0;
-    background-color: #161625;
-}
-.header-content { display: flex; align-items: center; justify-content: center; gap: 1rem; }
-.logo { height: 40px; }
-header h1 { color: var(--primary-color); margin: 0; font-size: 1.75rem; }
-header p { color: var(--muted-color); margin-top: 0.5rem; }
+header, footer { text-align: center; padding: 1.25rem; flex-shrink: 0; background-color: #161625; }
+header h1 { color: var(--primary-color); margin: 0 0 0.5rem 0; font-size: 1.75rem; }
+header p, footer p { color: var(--muted-color); margin: 0; }
 footer { font-size: 0.9em; }
 a { color: var(--primary-color); font-weight: bold; text-decoration: none; }
 a:hover { text-decoration: underline; }
-
-main {
-    flex-grow: 1;
-    display: flex;
-    padding: 1.5rem;
-    gap: 1.5rem;
-    box-sizing: border-box;
-    overflow: hidden;
-}
-
-.main-grid {
-    display: grid;
-    grid-template-rows: 60fr 40fr;
-    width: 100%;
-    height: 100%;
-    gap: 1.5rem;
-}
-
+main { flex-grow: 1; display: flex; padding: 1.5rem; gap: 1.5rem; box-sizing: border-box; overflow: hidden; }
+.main-grid { display: grid; grid-template-rows: 60fr 40fr; width: 100%; height: 100%; gap: 1.5rem; }
 .top-panels { display: flex; gap: 1.5rem; min-height: 0; }
 .code-panel, .preview-panel { display: flex; flex-direction: column; flex: 1; min-width: 0; }
 .output-header, .preview-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; flex-shrink: 0; }
 label { font-weight: bold; color: var(--muted-color); }
 .button-group { display: flex; gap: 0.5rem; }
-
-button {
-    background-color: var(--primary-color);
-    color: var(--bg-color);
-    border: 1px solid var(--primary-color);
+#copy-button, #download-button {
+    background-color: var(--secondary-color);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
     padding: 0.5rem 1rem;
     border-radius: 6px;
     font-family: var(--font-main);
@@ -70,54 +45,24 @@ button {
     cursor: pointer;
     transition: background-color 0.2s, transform 0.1s;
 }
-button:hover { background-color: #00c0e8; }
-button:active { transform: scale(0.98); }
-button.copied { background-color: var(--success-color); border-color: var(--success-color); }
-#download-button { background-color: transparent; color: var(--primary-color); }
-#download-button:hover { background-color: var(--primary-color); color: var(--bg-color); }
+#copy-button:hover, #download-button:hover { background-color: #4a4a6a; }
+#copy-button:active, #download-button:active { transform: scale(0.98); }
+#copy-button.copied { background-color: var(--success-color); color: #161625; }
 
-#html-editor {
+.editor-container {
     height: 100%;
     width: 100%;
+    border: 1px solid var(--border-color);
     border-radius: 8px;
     overflow: hidden;
-    border: 1px solid var(--border-color);
 }
-
-textarea {
-    font-family: var(--font-code);
-    flex-grow: 1;
-    background-color: var(--panel-bg);
-    color: var(--text-color);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 1rem;
-    font-size: 0.9rem;
-    line-height: 1.6;
-    resize: none;
-    outline: none;
-}
-textarea#syqlorix-output { background-color: #242440; }
+.editor-container.readonly { background-color: #242440; }
 
 #preview-frame {
-    flex-grow: 1;
-    width: 100%;
-    height: 100%;
+    flex-grow: 1; width: 100%; height: 100%;
     border: 1px solid var(--border-color);
     border-radius: 8px;
     background-color: white;
 }
-
-.status {
-    padding: 0.25rem 1rem;
-    border-radius: 8px;
-    font-family: var(--font-code);
-    font-size: 0.9em;
-    display: none;
-}
-.status.error {
-    background-color: rgba(255, 83, 112, 0.1);
-    color: var(--error-color);
-    border: 1px solid var(--error-color);
-    display: block;
-}
+.status { padding: 0.25rem 1rem; border-radius: 8px; font-family: var(--font-code); font-size: 0.9em; display: none; text-align: right;}
+.status.error { color: var(--error-color); display: block; }
