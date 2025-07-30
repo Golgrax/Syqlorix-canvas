@@ -95,60 +95,66 @@ require(['vs/editor/editor.main'], () => {
 });
 
 // --- Main Event Listener for UI ---
-document.addEventListener('DOMContentLoaded', () => {
-    const previewPanel = document.querySelector('.preview-panel');
-    const previewToggle = document.querySelector('.preview-toggle');
-    const previewClose = document.querySelector('.preview-close');
-    const copyButton = document.getElementById('copy-button');
-    const downloadButton = document.getElementById('download-button');
-    const exampleSelect = document.getElementById('example-select');
+    document.addEventListener('DOMContentLoaded', () => {
+        const previewPanel = document.querySelector('.preview-panel');
+        const previewToggle = document.querySelector('.preview-toggle');
+        const previewClose = document.querySelector('.preview-close');
+        const copyButton = document.getElementById('copy-button');
+        const downloadButton = document.getElementById('download-button');
+        const exampleSelect = document.getElementById('example-select');
 
-    const togglePreview = () => {
-        previewPanel.classList.toggle('active');
-        previewToggle.classList.toggle('active');
-        const icon = previewToggle.querySelector('i');
-        icon.className = previewPanel.classList.contains('active') ? 'fas fa-times' : 'fas fa-eye';
-    };
-    
-    previewToggle.addEventListener('click', togglePreview);
-    previewClose.addEventListener('click', togglePreview);
-    
-    copyButton.addEventListener('click', () => {
-        const code = syqlorixEditor.getValue();
-        if (!code || code.startsWith('# Conversion failed:')) { showStatus('Nothing to copy or conversion failed.', 'error', 3000); return; }
-        navigator.clipboard.writeText(code).then(() => {
-            const originalIcon = copyButton.innerHTML;
-            copyButton.innerHTML = '<i class="fas fa-check mr-1"></i>Copied!';
-            copyButton.classList.add('copied');
-            showStatus('Code copied to clipboard!', 'success', 2000);
-            setTimeout(() => { copyButton.innerHTML = originalIcon; copyButton.classList.remove('copied'); }, 2000);
-        }).catch(() => showStatus('Failed to copy to clipboard.', 'error', 3000));
-    });
-
-    downloadButton.addEventListener('click', () => {
-        const code = syqlorixEditor.getValue();
-        if (!code || code.startsWith('# Conversion failed:')) { showStatus('Nothing to download or conversion failed.', 'error', 3000); return; }
-        const blob = new Blob([code], { type: 'text/python' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'app.py';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-    });
-
-    exampleSelect.addEventListener('change', (event) => {
-        const selectedValue = event.target.value;
-        const selectedExample = examples[selectedValue];
-        if (selectedExample && htmlEditor) {
-            htmlEditor.setValue(selectedExample);
-            const selectedText = event.target.options[event.target.selectedIndex].text;
-            showStatus(`Loaded "${selectedText}" example!`, 'success', 2000);
+        
+        previewToggle.addEventListener('click', togglePreview);
+    const showStatus = (message, type = 'error', duration = 0) => {
+        statusMessage.textContent = message;
+        statusMessage.className = `status ${type}`;
+        if (duration > 0) {
+            setTimeout(() => hideStatus(), duration);
         }
+    };
+    const hideStatus = () => {
+        statusMessage.textContent = '';
+        statusMessage.className = 'status';
+    };
+        previewClose.addEventListener('click', togglePreview);
+        
+        copyButton.addEventListener('click', () => {
+            const code = syqlorixEditor.getValue();
+            if (!code || code.startsWith('# Conversion failed:')) { showStatus('Nothing to copy or conversion failed.', 'error', 3000); return; }
+            navigator.clipboard.writeText(code).then(() => {
+                const originalIcon = copyButton.innerHTML;
+                copyButton.innerHTML = '<i class="fas fa-check mr-1"></i>Copied!';
+                copyButton.classList.add('copied');
+                showStatus('Code copied to clipboard!', 'success', 2000);
+                setTimeout(() => { copyButton.innerHTML = originalIcon; copyButton.classList.remove('copied'); }, 2000);
+            }).catch(() => showStatus('Failed to copy to clipboard.', 'error', 3000));
+        });
+
+        downloadButton.addEventListener('click', () => {
+            const code = syqlorixEditor.getValue();
+            if (!code || code.startsWith('# Conversion failed:')) { showStatus('Nothing to download or conversion failed.', 'error', 3000); return; }
+            const blob = new Blob([code], { type: 'text/python' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'app.py';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        exampleSelect.addEventListener('change', (event) => {
+            const selectedValue = event.target.value;
+            const selectedExample = examples[selectedValue];
+            if (selectedExample && htmlEditor) {
+                htmlEditor.setValue(selectedExample);
+                const selectedText = event.target.options[event.target.selectedIndex].text;
+                showStatus(`Loaded "${selectedText}" example!`, 'success', 2000);
+            }
+        });
+
     });
-});
 
 // --- Main Processing Function ---
 const processAll = (html) => {
@@ -161,7 +167,6 @@ const processAll = (html) => {
     const result = convertHtmlToSyqlorix(html);
     const previewHtml = renderPreviewFromHtml(html);
     if(syqlorixEditor) syqlorixEditor.setValue(result.code);
-    document.getElementById('preview-frame').srcdoc = previewHtml;
 };
 
 // --- Syqlorix HTML Renderer Simulation (Your Perfected Version) ---
@@ -273,18 +278,3 @@ const processNodeForPython = (node, indentLevel) => {
     return null;
 };
     
-// --- UI Utility Functions ---
-const showStatus = (message, type = 'error', duration = 0) => {
-    const statusMessage = document.getElementById('status-message');
-    statusMessage.textContent = message;
-    statusMessage.className = `status ${type}`;
-    if (duration > 0) {
-        setTimeout(() => hideStatus(), duration);
-    }
-};
-
-const hideStatus = () => {
-    const statusMessage = document.getElementById('status-message');
-    statusMessage.textContent = '';
-    statusMessage.className = 'status';
-};
