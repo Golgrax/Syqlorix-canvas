@@ -161,7 +161,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return '';
     };
 
-    // --- HTML to Syqlorix Python Code Converter (CORRECTED) ---
     const convertHtmlToSyqlorix = (htmlString) => {
         try {
             if (!htmlString.trim().toLowerCase().startsWith('<!doctype html>')) throw new Error("Input must be a full HTML document.");
@@ -172,10 +171,21 @@ document.addEventListener('DOMContentLoaded', () => {
             const rootElement = doc.documentElement;
             if (!rootElement) throw new Error("No <html> tag found.");
             
-            const syqlorixCode = processNodeForPython(rootElement, 0);
+            const syqlorixCode = processNodeForPython(rootElement, 1);
+            
+            const finalCode = `from syqlorix import *\n\n` +
+                            `# Main application object\n` +
+                            `doc = Syqlorix()\n\n` +
+                            `# Define a route for the root URL\n` +
+                            `@doc.route('/')\n` +
+                            `def main_page(request):\n` +
+                            `    return ${syqlorixCode}\n\n` +
+                            `# To run this script, save it as app.py and then execute in your terminal:\n` +
+                            `# syqlorix run app.py`;
+
             return {
                 success: true,
-                code: `from syqlorix import *\n\n# Main application object\ndoc = ${syqlorixCode}`
+                code: finalCode
             };
         } catch (e) {
             return { success: false, code: `# Conversion failed: ${e.message}` };
