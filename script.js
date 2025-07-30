@@ -94,30 +94,39 @@ require(['vs/editor/editor.main'], () => {
     htmlEditor.onDidChangeModelContent(() => processAll(htmlEditor.getValue()));
 });
 
-// --- Main Event Listener for UI ---
     document.addEventListener('DOMContentLoaded', () => {
+        // --- Element References ---
         const previewPanel = document.querySelector('.preview-panel');
         const previewToggle = document.querySelector('.preview-toggle');
         const previewClose = document.querySelector('.preview-close');
         const copyButton = document.getElementById('copy-button');
         const downloadButton = document.getElementById('download-button');
         const exampleSelect = document.getElementById('example-select');
+        const statusMessage = document.getElementById('status-message');
 
+        // --- UI Utility Functions (Defined once, in the correct scope) ---
+        const showStatus = (message, type = 'error', duration = 0) => {
+            statusMessage.textContent = message;
+            statusMessage.className = `status ${type}`;
+            if (duration > 0) {
+                setTimeout(hideStatus, duration);
+            }
+        };
+        const hideStatus = () => {
+            statusMessage.textContent = '';
+            statusMessage.className = 'status';
+        };
         
+        const togglePreview = () => {
+            previewPanel.classList.toggle('active');
+            previewToggle.classList.toggle('active');
+            const icon = previewToggle.querySelector('i');
+            icon.className = previewPanel.classList.contains('active') ? 'fas fa-times' : 'fas fa-eye';
+        };
+
         previewToggle.addEventListener('click', togglePreview);
-    const showStatus = (message, type = 'error', duration = 0) => {
-        statusMessage.textContent = message;
-        statusMessage.className = `status ${type}`;
-        if (duration > 0) {
-            setTimeout(() => hideStatus(), duration);
-        }
-    };
-    const hideStatus = () => {
-        statusMessage.textContent = '';
-        statusMessage.className = 'status';
-    };
         previewClose.addEventListener('click', togglePreview);
-        
+
         copyButton.addEventListener('click', () => {
             const code = syqlorixEditor.getValue();
             if (!code || code.startsWith('# Conversion failed:')) { showStatus('Nothing to copy or conversion failed.', 'error', 3000); return; }
@@ -153,12 +162,11 @@ require(['vs/editor/editor.main'], () => {
                 showStatus(`Loaded "${selectedText}" example!`, 'success', 2000);
             }
         });
-
     });
 
-// --- Main Processing Function ---
+
 const processAll = (html) => {
-    hideStatus();
+    document.getElementById('status-message').className = 'status';
     if (!html || html.trim() === '') {
         if(syqlorixEditor) syqlorixEditor.setValue('');
         document.getElementById('preview-frame').srcdoc = initialPreviewContent;
