@@ -77,6 +77,25 @@ document.addEventListener('DOMContentLoaded', () => {
     const statusMessage = document.getElementById('status-message');
     const exampleSelect = document.getElementById('example-select');
     const previewFrame = document.getElementById('preview-frame');
+    const previewPanel = document.querySelector('.preview-panel');
+    const previewToggle = document.querySelector('.preview-toggle');
+    const previewClose = document.querySelector('.preview-close');
+
+
+    const togglePreview = () => {
+        previewPanel.classList.toggle('active');
+        previewToggle.classList.toggle('active');
+        const icon = previewToggle.querySelector('i');
+        // Switch between eye and close icon
+        if (previewPanel.classList.contains('active')) {
+            icon.className = 'fas fa-times';
+        } else {
+            icon.className = 'fas fa-eye';
+        }
+    };
+
+    previewToggle.addEventListener('click', togglePreview);
+    previewClose.addEventListener('click', togglePreview);
 
     let htmlEditor, syqlorixEditor;
 
