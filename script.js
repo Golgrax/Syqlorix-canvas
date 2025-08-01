@@ -200,7 +200,8 @@ const convertHtmlToSyqlorix = (htmlString) => {
             const parseError = doc.querySelector('parsererror');
             if (parseError) throw new Error("HTML parsing error. Check for unclosed tags.");
             const headNode = doc.querySelector('head');
-            const bodyNode = doc.querySelector('body');
+            const bodyNodes = doc.querySelectorAll('body');
+            const bodyNode = bodyNodes[bodyNodes.length - 1];
             if (!headNode || !bodyNode) throw new Error("A full HTML document requires a <head> and <body>.");
             let cssContent = '';
             const styleTags = headNode.querySelectorAll('style');
@@ -266,6 +267,7 @@ const convertHtmlToSyqlorix = (htmlString) => {
 };
 
 const processNodeForPython = (node, indentLevel) => {
+    const pythonKeywords = new Set(['for', 'in', 'is', 'if', 'else', 'while', 'class', 'def', 'return', 'yield', 'lambda', 'with', 'as', 'try', 'except', 'finally', 'import', 'from', 'global', 'nonlocal', 'pass', 'assert', 'break', 'continue', 'del', 'raise', 'async', 'await']);
     const indent = '    '.repeat(indentLevel);
     if (node.nodeType === Node.TEXT_NODE) { const text = node.textContent.trim(); return text ? `${indent}"${text.replace(/"/g, '\\"')}"` : null; }
     if (node.nodeType === Node.COMMENT_NODE) { const text = node.textContent.trim(); return `${indent}Comment("${text.replace(/"/g, '\\"')}")`; }
@@ -285,7 +287,12 @@ const processNodeForPython = (node, indentLevel) => {
         if (['html', 'head', 'body'].includes(pythonTagName)) { return Array.from(node.childNodes).map(child => processNodeForPython(child, indentLevel)).filter(Boolean).join(',\n'); }
         if (pythonTagName === 'input') pythonTagName = 'input_';
         const children = Array.from(node.childNodes).map(child => processNodeForPython(child, indentLevel + 1)).filter(Boolean);
-        const attributes = Array.from(node.attributes).map(attr => { const attrName = attr.name === 'class' ? 'class_' : attr.name.replace(/-/g, '_'); if (attr.value === '') return `${attrName}=True`; return `${attrName}="${attr.value.replace(/"/g, '\\"')}"`; });
+        const attributes = Array.from(node.attributes).map(attr => { 
+            let attrName = attr.name.replace(/-/g, '_');
+            if (pythonKeywords.has(attrName)) {
+                attrName += '_';
+            }
+        if (attr.value === '') return `${attrName}=True`; return `${attrName}="${attr.value.replace(/"/g, '\\"')}"`; });
         let args = [];
         if (children.length > 0) args.push(`\n${children.join(',\n')}\n${indent}`);
         if (attributes.length > 0) { if (children.length > 0) args.push(', '); args.push(attributes.join(', ')); }
