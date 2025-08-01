@@ -102,6 +102,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const copyButton = document.getElementById('copy-button');
     const downloadButton = document.getElementById('download-button');
     const exampleSelect = document.getElementById('example-select');
+    previewFrame = document.getElementById('preview-frame');
 
     const togglePreview = () => {
         previewPanel.classList.toggle('active');
