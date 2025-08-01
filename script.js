@@ -63,6 +63,7 @@ nav a { margin: 0 1rem; color: #72d5ff; }
 };
 
 let htmlEditor, syqlorixEditor;
+let previewFrame;
 const initialPreviewContent = `<body style="font-family: sans-serif; color: #555; display: grid; place-content: center; height: 100%; margin: 0;"><p>Live preview will appear here.</p></body>`;
 
 require.config({ paths: { 'vs': 'https://cdn.jsdelivr.net/npm/monaco-editor@0.34.0/min/vs' }});
