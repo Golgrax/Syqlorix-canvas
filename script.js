@@ -95,6 +95,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const previewPanel = document.querySelector('.preview-panel');
     const previewToggle = document.querySelector('.preview-toggle');
     const previewClose = document.querySelector('.preview-close');
+    const fullscreenButton = document.getElementById('fullscreen-button');
+    const previewModal = document.getElementById('preview-modal');
+    const modalCloseButton = document.getElementById('modal-close-button');
+    const modalPreviewFrame = document.getElementById('modal-preview-frame');
     const copyButton = document.getElementById('copy-button');
     const downloadButton = document.getElementById('download-button');
     const exampleSelect = document.getElementById('example-select');
@@ -143,6 +147,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const selectedText = event.target.options[event.target.selectedIndex].text;
             showStatus(`Loaded "${selectedText}" example!`, 'success', 2000);
         }
+    });
+
+    fullscreenButton.addEventListener('click', () => {
+        modalPreviewFrame.srcdoc = previewFrame.srcdoc;
+        previewModal.classList.add('active');
+    });
+
+    modalCloseButton.addEventListener('click', () => {
+        previewModal.classList.remove('active');
+        modalPreviewFrame.srcdoc = ''; 
     });
 });
 

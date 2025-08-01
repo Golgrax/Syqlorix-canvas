@@ -59,6 +59,9 @@
                     </button>
                 </div>
                 <div id="status-message" class="status mb-3"></div>
+                <button id="fullscreen-button" class="btn-primary text-sm">
+                    <i class="fas fa-expand mr-1"></i>Expand
+                </button>
                 <div class="flex-1 md:bg-gray-900 md:rounded-lg md:p-4">
                     <iframe id="preview-frame" title="Live Preview" sandbox="allow-scripts allow-same-origin" class="w-full h-96 md:h-full"></iframe>
                 </div>
@@ -73,5 +76,11 @@
     </footer>
     <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.34.0/min/vs/loader.js"></script>
     <script src="/script.js"></script>
+        <div id="preview-modal" class="modal-overlay">
+            <button id="modal-close-button" class="modal-close-btn">
+                <i class="fas fa-times"></i>
+            </button>
+            <iframe id="modal-preview-frame" title="Fullscreen Preview" sandbox="allow-scripts allow-same-origin"></iframe>
+        </div>
 </body>
 </html>
