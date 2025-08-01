@@ -211,17 +211,46 @@ const convertHtmlToSyqlorix = (htmlString) => {
             scriptTags.forEach(script => { if (script.src) { externalScripts.push(script); } else { jsContent += script.innerHTML.trim() + '\n\n'; } script.remove(); });
             const headChildren = processNodeForPython(headNode, 1);
             const bodyChildren = processNodeForPython(bodyNode, 1);
+            const head_args = [];
+            if (cssContent.trim()) {
+                head_args.push('main_css');
+            }
+            if (headChildren.trim()) {
+                head_args.push(headChildren);
+            }
+
+            const body_args = [];
+            if (bodyChildren.trim()) {
+                body_args.push(bodyChildren);
+            }
+            externalScripts.forEach(script => {
+                body_args.push(`script(src="${script.src}")`);
+            });
+            if (jsContent.trim()) {
+                body_args.push('interactive_js');
+            }
             let code = `from syqlorix import *\n\n`;
             code += `doc = Syqlorix()\n\n`;
-            if (cssContent.trim()) { code += `main_css = style("""\n${cssContent.trim()}\n""")\n\n`; }
-            if (jsContent.trim()) { code += `interactive_js = script("""\n${jsContent.trim()}\n""")\n\n`; }
-            code += `@doc.route('/')\ndef main_page(request):\n`;
-            code += `    return Syqlorix(\n        head(\n`;
-            if (cssContent.trim()) { code += `            main_css,\n`; }
-            code += `            ${headChildren}\n        ),\n        body(\n            ${bodyChildren},\n`;
-            externalScripts.forEach(script => { code += `            script(src="${script.src}"),\n`; });
-            if (jsContent.trim()) { code += `            interactive_js\n`; }
-            code += `        )\n    )\n\n# To run this script, save it as app.py and execute:\n# syqlorix run app.py`;
+            if (cssContent.trim()) { 
+                code += `# --- Extracted CSS --- \n`;
+                code += `main_css = style("""\n${cssContent.trim()}\n""")\n\n`; 
+            }
+            if (jsContent.trim()) { 
+                code += `# --- Extracted JavaScript --- \n`;
+                code += `interactive_js = script("""\n${jsContent.trim()}\n""")\n\n`; 
+            }
+
+            code += `# --- Define the main route --- \n`;
+            code += `@doc.route('/')\n`;
+            code += `def main_page(request):\n`;
+            code += `    return Syqlorix(\n`;
+            code += `        head(\n            ${head_args.join(',\n            ')}\n        ),\n`;
+            code += `        body(\n            ${body_args.join(',\n            ')}\n        )\n`;
+            code += `    )\n\n`;
+
+            code += `# To run this script, save it as app.py and execute:\n`;
+            code += `# syqlorix run app.py`;
+
             return { success: true, code: code };
         } else {
             const parser = new DOMParser();
